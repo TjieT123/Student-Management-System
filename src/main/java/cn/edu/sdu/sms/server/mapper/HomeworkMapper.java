@@ -6,8 +6,10 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Update;
 import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface HomeworkMapper {
@@ -20,6 +22,24 @@ public interface HomeworkMapper {
 
     @Select("select * from homework where course_id = #{courseId}")
     List<Homework> getHomeworkByCourseId(Long courseId);
+
+    @Select("select h.id, h.course_id as courseId, h.title, h.deadline, t.name as teacherName " +
+            "from homework h left join teacher t on h.teacher_id = t.sch_id " +
+            "order by h.create_time desc LIMIT #{limit} OFFSET #{offset}")
+    List<Map<String, Object>> getHomeworkWithTeacherPaginated(@Param("offset") int offset, @Param("limit") int limit);
+
+    @Select("select count(*) from homework")
+    int countAllHomework();
+
+    @Select("select h.id, h.title, h.deadline, c.course_name as courseName, t.name as teacherName " +
+            "from homework h left join course c on h.course_id = c.id " +
+            "left join teacher t on h.teacher_id = t.sch_id " +
+            "where h.course_id = #{courseId} " +
+            "order by h.create_time desc LIMIT #{limit} OFFSET #{offset}")
+    List<Map<String, Object>> getHomeworkByCourseIdWithDetailsPaginated(@Param("courseId") Long courseId, @Param("offset") int offset, @Param("limit") int limit);
+
+    @Select("select count(*) from homework where course_id = #{courseId}")
+    int countHomeworkByCourseId(@Param("courseId") Long courseId);
 
     @Insert("insert into homework(course_id, title, content, deadline, teacher_id, create_time) values(#{courseId}, #{title}, #{content}, #{deadline}, #{teacherId}, #{createTime})")
     int insertHomework(Homework homework);

@@ -15,21 +15,21 @@ public class AnnouncementService {
     private AnnouncementMapper announcementMapper;
 
     /**
-     * Get all announcements (ordered by publish time descending)
+     * 获取所有公告（按发布时间倒序）
      */
     public List<Announcement> getAllAnnouncements() {
         return announcementMapper.getAllAnnouncements();
     }
 
     /**
-     * Get announcement by ID
+     * 根据ID获取公告详情
      */
     public Announcement getAnnouncementById(Long id) {
         return announcementMapper.getAnnouncementById(id);
     }
 
     /**
-     * Publish new announcement
+     * 发布新公告
      */
     public int publishAnnouncement(String title, String content, String publishBy, String publisherName) {
         Announcement announcement = new Announcement();
@@ -50,7 +50,7 @@ public class AnnouncementService {
     }
 
     /**
-     * Delete announcement
+     * 删除公告
      */
     public int deleteAnnouncement(Long id) {
         return announcementMapper.deleteAnnouncement(id);

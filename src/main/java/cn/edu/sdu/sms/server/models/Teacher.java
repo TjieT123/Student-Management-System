@@ -10,6 +10,5 @@ import lombok.NoArgsConstructor;
 public class Teacher {
     private String schId;
     private String name;
-    private Long teachCourseId;
 }
 

@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 认证接口，提供用户注册、登录和Token刷新功能。
+ */
 @RestController
 @RequestMapping("/auth")
 public class AuthController {

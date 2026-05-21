@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Map;
 
+/**
+ * 教师接口，提供作业的发布、查看和批改功能。
+ */
 @RestController
 @RequestMapping("/api/teacher")
 public class TeacherController {
@@ -25,6 +27,9 @@ public class TeacherController {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    /**
+     * 发布新作业
+     */
     @PostMapping("/homework/publish")
     public ResponseEntity<Result> publishHomework(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
         String token = getTokenFromRequest(httpRequest);
@@ -47,23 +52,36 @@ public class TeacherController {
         return Result.success(homework, "Homework published successfully");
     }
 
+    /**
+     * 分页获取作业列表（不含content、teacherId、createTime，含teacherName）
+     */
     @GetMapping("/homework/list")
-    public ResponseEntity<Result> getTeacherHomeworkList(HttpServletRequest httpRequest) {
+    public ResponseEntity<Result> getTeacherHomeworkList(@RequestParam(defaultValue = "1") int page,
+                                                         @RequestParam(defaultValue = "10") int pageSize,
+                                                         HttpServletRequest httpRequest) {
         String token = getTokenFromRequest(httpRequest);
-        String teacherId = jwtTokenProvider.getUserIdFromToken(token);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
 
-        List<Homework> homeworks = homeworkService.getAllHomework();
-
-        return Result.success(homeworks, "Homework list retrieved");
+        Map<String, Object> result = homeworkService.getHomeworkPaginated(page, pageSize);
+        return Result.success(result, "Homework list retrieved");
     }
 
+    /**
+     * 分页获取指定作业的学生提交列表（不含sid、content、comment，含studentName）
+     */
     @GetMapping("/homework/submit/list")
-    public ResponseEntity<Result> getHomeworkSubmissions(@RequestParam Long homeworkId, HttpServletRequest httpRequest) {
-        List<HomeworkSubmit> submissions = homeworkService.getSubmissionsByHomeworkId(homeworkId);
-
-        return Result.success(submissions, "Submissions retrieved");
+    public ResponseEntity<Result> getHomeworkSubmissions(@RequestParam Long homeworkId,
+                                                         @RequestParam(defaultValue = "1") int page,
+                                                         @RequestParam(defaultValue = "10") int pageSize) {
+        Map<String, Object> result = homeworkService.getSubmissionsPaginated(homeworkId, page, pageSize);
+        return Result.success(result, "Submissions retrieved");
     }
 
+    /**
+     * 批改学生作业
+     */
     @PostMapping("/homework/check")
     public ResponseEntity<Result> gradeHomework(@RequestBody Map<String, Object> request) {
         Long submitId = Long.parseLong(request.get("submitId").toString());
@@ -78,6 +96,9 @@ public class TeacherController {
         return Result.success(submit, "Homework graded successfully");
     }
 
+    /**
+     * 从HTTP请求中提取Bearer Token
+     */
     private String getTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {

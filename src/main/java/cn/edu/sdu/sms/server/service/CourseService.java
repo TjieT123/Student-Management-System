@@ -5,8 +5,7 @@ import cn.edu.sdu.sms.server.models.Course;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class CourseService {
@@ -23,6 +22,39 @@ public class CourseService {
             return getPredefinedCourses();
         }
         return courses;
+    }
+
+    /**
+     * 分页获取课程列表（不含detail和teacherId，含teacherName）
+     */
+    public Map<String, Object> getCoursesPaginated(int page, int pageSize) {
+        int offset = (page - 1) * pageSize;
+        int total = courseMapper.countCourses();
+        List<Map<String, Object>> list;
+
+        if (total == 0) {
+            List<Course> predefined = getPredefinedCourses();
+            total = predefined.size();
+            int toIndex = Math.min(offset + pageSize, total);
+            list = new ArrayList<>();
+            for (int i = offset; i < toIndex; i++) {
+                Course c = predefined.get(i);
+                Map<String, Object> item = new HashMap<>();
+                item.put("id", c.getId());
+                item.put("courseName", c.getCourseName());
+                item.put("teacherName", null);
+                list.add(item);
+            }
+        } else {
+            list = courseMapper.getCoursesWithTeacher(offset, pageSize);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("page", page);
+        result.put("pageSize", pageSize);
+        result.put("list", list);
+        return result;
     }
 
     /**

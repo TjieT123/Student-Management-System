@@ -40,6 +40,9 @@ public class AuthService {
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
         result.put("refreshToken", refreshToken);
+
+        // 清除密码，不返回给前端
+        user.setPassword(null);
         result.put("user", user);
 
         return result;

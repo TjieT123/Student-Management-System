@@ -18,10 +18,10 @@ public interface TeacherMapper {
     @Select("select * from teacher where sch_id = #{schId}")
     Teacher getTeacherBySchId(String schId);
 
-    @Insert("insert into teacher(sch_id, name, teach_course_id) values(#{schId}, #{name}, #{teachCourseId})")
+    @Insert("insert into teacher(sch_id, name) values(#{schId}, #{name})")
     int insertTeacher(Teacher teacher);
 
-    @Update("update teacher set name = #{name}, teach_course_id = #{teachCourseId} where sch_id = #{schId}")
+    @Update("update teacher set name = #{name} where sch_id = #{schId}")
     int updateTeacher(Teacher teacher);
 
     @Delete("delete from teacher where sch_id = #{schId}")

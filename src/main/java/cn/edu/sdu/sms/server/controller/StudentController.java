@@ -12,10 +12,11 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
+/**
+ * 学生接口，提供学生信息查询和作业的查看、提交功能。
+ */
 @RestController
 public class StudentController {
 
@@ -28,43 +29,38 @@ public class StudentController {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    /**
+     * 分页获取所有学生信息
+     */
     @GetMapping("/getAll")
-    public Object getAllStudents() {
-        return studentService.getAllStudents();
+    public ResponseEntity<Result> getAllStudents(@RequestParam(defaultValue = "1") int page,
+                                                 @RequestParam(defaultValue = "10") int pageSize) {
+        Map<String, Object> result = studentService.getStudentsPaginated(page, pageSize);
+        return Result.success(result, "Students retrieved successfully");
     }
 
+    /**
+     * 分页获取某课程的作业列表及提交状态（不含courseId、content、teacherId、createTime，含courseName和teacherName）
+     */
     @GetMapping("/api/student/homework/list")
-    public ResponseEntity<Result> getStudentHomeworkList(@RequestParam Long courseId, HttpServletRequest httpRequest) {
+    public ResponseEntity<Result> getStudentHomeworkList(@RequestParam Long courseId,
+                                                         @RequestParam(defaultValue = "1") int page,
+                                                         @RequestParam(defaultValue = "10") int pageSize,
+                                                         HttpServletRequest httpRequest) {
         String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
         String studentId = jwtTokenProvider.getUserIdFromToken(token);
 
-        List<Homework> homeworks = homeworkService.getHomeworkByCourseId(courseId);
+        Map<String, Object> result = homeworkService.getHomeworkByCourseIdPaginated(courseId, page, pageSize);
 
-        for (Homework homework : homeworks) {
-            HomeworkSubmit submit = homeworkService.getSubmissionByHomeworkIdAndSid(homework.getId(), studentId);
-            if (submit != null) {
-                Map<String, Object> hwMap = new HashMap<>();
-                hwMap.put("homework", homework);
-                hwMap.put("submitted", true);
-                hwMap.put("submitTime", submit.getSubmitTime());
-            } else {
-                if (LocalDateTime.now().isAfter(homework.getDeadline())) {
-                    Map<String, Object> hwMap = new HashMap<>();
-                    hwMap.put("homework", homework);
-                    hwMap.put("submitted", false);
-                    hwMap.put("status", "已截止");
-                } else {
-                    Map<String, Object> hwMap = new HashMap<>();
-                    hwMap.put("homework", homework);
-                    hwMap.put("submitted", false);
-                    hwMap.put("status", "未提交");
-                }
-            }
-        }
-
-        return Result.success(homeworks, "Homework list retrieved");
+        return Result.success(result, "Homework list retrieved");
     }
 
+    /**
+     * 提交作业
+     */
     @PostMapping("/api/student/homework/submit")
     public ResponseEntity<Result> submitHomework(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
         String token = getTokenFromRequest(httpRequest);
@@ -90,6 +86,9 @@ public class StudentController {
         return Result.success(submit, "Homework submitted successfully");
     }
 
+    /**
+     * 获取作业提交详情
+     */
     @GetMapping("/api/student/homework/submission/{id}")
     public ResponseEntity<Result> getSubmissionDetails(@PathVariable Long id) {
         HomeworkSubmit submit = homeworkService.getSubmissionById(id);
@@ -100,6 +99,9 @@ public class StudentController {
         return Result.success(submit, "Submission retrieved");
     }
 
+    /**
+     * 从HTTP请求中提取Bearer Token
+     */
     private String getTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {

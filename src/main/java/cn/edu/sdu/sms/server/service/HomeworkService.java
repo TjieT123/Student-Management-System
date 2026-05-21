@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class HomeworkService {
@@ -29,6 +29,54 @@ public class HomeworkService {
 
     public List<Homework> getAllHomework() {
         return homeworkMapper.getAllHomework();
+    }
+
+    /**
+     * 分页获取作业列表（不含content、teacherId、createTime，含teacherName）
+     */
+    public Map<String, Object> getHomeworkPaginated(int page, int pageSize) {
+        int offset = (page - 1) * pageSize;
+        int total = homeworkMapper.countAllHomework();
+        List<Map<String, Object>> list = homeworkMapper.getHomeworkWithTeacherPaginated(offset, pageSize);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("page", page);
+        result.put("pageSize", pageSize);
+        result.put("list", list);
+        return result;
+    }
+
+    /**
+     * 分页获取指定课程作业列表（不含courseId、content、teacherId、createTime，含courseName和teacherName）
+     */
+    public Map<String, Object> getHomeworkByCourseIdPaginated(Long courseId, int page, int pageSize) {
+        int offset = (page - 1) * pageSize;
+        int total = homeworkMapper.countHomeworkByCourseId(courseId);
+        List<Map<String, Object>> list = homeworkMapper.getHomeworkByCourseIdWithDetailsPaginated(courseId, offset, pageSize);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("page", page);
+        result.put("pageSize", pageSize);
+        result.put("list", list);
+        return result;
+    }
+
+    /**
+     * 分页获取指定作业的提交列表（不含sid、content、comment，含studentName）
+     */
+    public Map<String, Object> getSubmissionsPaginated(Long homeworkId, int page, int pageSize) {
+        int offset = (page - 1) * pageSize;
+        int total = submitMapper.countByHomeworkId(homeworkId);
+        List<Map<String, Object>> list = submitMapper.getSubmissionsWithStudent(homeworkId, offset, pageSize);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("page", page);
+        result.put("pageSize", pageSize);
+        result.put("list", list);
+        return result;
     }
 
     public HomeworkSubmit getSubmissionByHomeworkIdAndSid(Long homeworkId, String sid) {

@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Update;
 import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -17,6 +18,12 @@ public interface StudentMapperEnhanced {
 
     @Select("select * from student where sid = #{sid}")
     Student getStudentBySid(String sid);
+
+    @Select("select * from student order by sid LIMIT #{limit} OFFSET #{offset}")
+    List<Student> getAllStudentsPaginated(@Param("offset") int offset, @Param("limit") int limit);
+
+    @Select("select count(*) from student")
+    int countStudents();
 
     @Insert("insert into student(sid, name, major, gender, s_class) values(#{sid}, #{name}, #{major}, #{gender}, #{sClass})")
     int insertStudent(Student student);

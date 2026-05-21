@@ -7,8 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 
+/**
+ * 课程接口，提供课程列表查看和详情查询功能。
+ */
 @RestController
 @RequestMapping("/api/course")
 public class CourseController {
@@ -17,12 +20,13 @@ public class CourseController {
     private CourseService courseService;
 
     /**
-     * 获取所有课程
+     * 分页获取课程列表（不含detail和teacherId，含teacherName）
      */
     @GetMapping("/list")
-    public ResponseEntity<Result> getAllCourses() {
-        List<Course> courses = courseService.getAllCourses();
-        return Result.success(courses, "Courses retrieved successfully");
+    public ResponseEntity<Result> getAllCourses(@RequestParam(defaultValue = "1") int page,
+                                                @RequestParam(defaultValue = "10") int pageSize) {
+        Map<String, Object> result = courseService.getCoursesPaginated(page, pageSize);
+        return Result.success(result, "Courses retrieved successfully");
     }
 
     /**

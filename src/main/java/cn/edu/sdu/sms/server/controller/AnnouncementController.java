@@ -12,6 +12,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 公告接口，提供公告的查看、发布和删除功能。
+ */
 @RestController
 @RequestMapping("/api/announcement")
 public class AnnouncementController {
@@ -23,7 +26,7 @@ public class AnnouncementController {
     private JwtTokenProvider jwtTokenProvider;
 
     /**
-     * Get all announcements
+     * 获取所有公告（按发布时间倒序）
      */
     @GetMapping("/list")
     public ResponseEntity<Result> getAllAnnouncements() {
@@ -32,7 +35,7 @@ public class AnnouncementController {
     }
 
     /**
-     * Get announcement by ID
+     * 根据ID获取公告详情
      */
     @GetMapping("/{id}")
     public ResponseEntity<Result> getAnnouncementById(@PathVariable Long id) {
@@ -44,7 +47,7 @@ public class AnnouncementController {
     }
 
     /**
-     * Publish new announcement (Admin only)
+     * 发布新公告
      */
     @PostMapping("/publish")
     public ResponseEntity<Result> publishAnnouncement(@RequestBody Map<String, String> request, HttpServletRequest httpRequest) {
@@ -71,7 +74,7 @@ public class AnnouncementController {
     }
 
     /**
-     * Delete announcement (Admin only)
+     * 删除公告
      */
     @PostMapping("/delete/{id}")
     public ResponseEntity<Result> deleteAnnouncement(@PathVariable Long id, HttpServletRequest httpRequest) {
@@ -90,6 +93,9 @@ public class AnnouncementController {
         return Result.success(null, "Announcement deleted successfully");
     }
 
+    /**
+     * 从HTTP请求中提取Bearer Token
+     */
     private String getTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {

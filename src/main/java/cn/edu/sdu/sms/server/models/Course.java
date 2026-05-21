@@ -10,5 +10,8 @@ import lombok.NoArgsConstructor;
 public class Course {
     private Long id;
     private String courseName;
+    private String detail;
+    private String address;
+    private String teacherId;
 }
 
