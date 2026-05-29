@@ -4,12 +4,20 @@ import cn.edu.sdu.sms.server.models.Announcement;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface AnnouncementMapper {
 
     @Select("select * from announcement order by publish_time desc")
     List<Announcement> getAllAnnouncements();
+
+    @Select("select id, title, publish_by as publishBy, publisher_name as publisherName, publish_time as publishTime " +
+            "from announcement order by publish_time desc LIMIT #{limit} OFFSET #{offset}")
+    List<Map<String, Object>> getAllAnnouncementsPaginated(@Param("offset") int offset, @Param("limit") int limit);
+
+    @Select("select count(*) from announcement")
+    int countAnnouncements();
 
     @Select("select * from announcement where id = #{id}")
     Announcement getAnnouncementById(Long id);

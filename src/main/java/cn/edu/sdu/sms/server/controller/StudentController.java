@@ -40,7 +40,7 @@ public class StudentController {
     }
 
     /**
-     * 分页获取某课程的作业列表及提交状态（不含courseId、content、teacherId、createTime，含courseName和teacherName）
+     * 分页获取某课程的作业列表及提交状态
      */
     @GetMapping("/api/student/homework/list")
     public ResponseEntity<Result> getStudentHomeworkList(@RequestParam Long courseId,
@@ -51,11 +51,14 @@ public class StudentController {
         if (token == null) {
             return Result.error(401, "Unauthorized");
         }
-        String studentId = jwtTokenProvider.getUserIdFromToken(token);
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
 
-        Map<String, Object> result = homeworkService.getHomeworkByCourseIdPaginated(courseId, page, pageSize);
-
-        return Result.success(result, "Homework list retrieved");
+        try {
+            Map<String, Object> result = homeworkService.getHomeworkByCourseIdPaginated(courseId, userId, page, pageSize);
+            return Result.success(result, "Homework list retrieved");
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
     }
 
     /**

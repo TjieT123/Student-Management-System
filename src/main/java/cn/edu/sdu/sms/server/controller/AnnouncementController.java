@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,12 +25,13 @@ public class AnnouncementController {
     private JwtTokenProvider jwtTokenProvider;
 
     /**
-     * 获取所有公告（按发布时间倒序）
+     * 分页获取所有公告（按发布时间倒序）
      */
     @GetMapping("/list")
-    public ResponseEntity<Result> getAllAnnouncements() {
-        List<Announcement> announcements = announcementService.getAllAnnouncements();
-        return Result.success(announcements, "Announcements retrieved successfully");
+    public ResponseEntity<Result> getAllAnnouncements(@RequestParam(defaultValue = "1") int page,
+                                                       @RequestParam(defaultValue = "10") int pageSize) {
+        Map<String, Object> result = announcementService.getAnnouncementsPaginated(page, pageSize);
+        return Result.success(result, "Announcements retrieved successfully");
     }
 
     /**

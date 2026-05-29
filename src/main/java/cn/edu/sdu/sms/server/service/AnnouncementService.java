@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AnnouncementService {
@@ -19,6 +21,22 @@ public class AnnouncementService {
      */
     public List<Announcement> getAllAnnouncements() {
         return announcementMapper.getAllAnnouncements();
+    }
+
+    /**
+     * 分页获取公告列表
+     */
+    public Map<String, Object> getAnnouncementsPaginated(int page, int pageSize) {
+        int offset = (page - 1) * pageSize;
+        int total = announcementMapper.countAnnouncements();
+        List<Map<String, Object>> list = announcementMapper.getAllAnnouncementsPaginated(offset, pageSize);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("page", page);
+        result.put("pageSize", pageSize);
+        result.put("list", list);
+        return result;
     }
 
     /**

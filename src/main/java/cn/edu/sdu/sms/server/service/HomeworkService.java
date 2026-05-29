@@ -2,8 +2,10 @@ package cn.edu.sdu.sms.server.service;
 
 import cn.edu.sdu.sms.server.mapper.HomeworkMapper;
 import cn.edu.sdu.sms.server.mapper.HomeworkSubmitMapper;
+import cn.edu.sdu.sms.server.mapper.UserMapper;
 import cn.edu.sdu.sms.server.models.Homework;
 import cn.edu.sdu.sms.server.models.HomeworkSubmit;
+import cn.edu.sdu.sms.server.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,9 @@ public class HomeworkService {
 
     @Autowired
     private HomeworkSubmitMapper submitMapper;
+
+    @Autowired
+    private UserMapper userMapper;
 
     public List<Homework> getHomeworkByCourseId(Long courseId) {
         return homeworkMapper.getHomeworkByCourseId(courseId);
@@ -48,12 +53,17 @@ public class HomeworkService {
     }
 
     /**
-     * 分页获取指定课程作业列表（不含courseId、content、teacherId、createTime，含courseName和teacherName）
+     * 分页获取指定课程作业列表（不含courseId、content、teacherId、createTime，含courseName、teacherName和当前学生的提交status）
      */
-    public Map<String, Object> getHomeworkByCourseIdPaginated(Long courseId, int page, int pageSize) {
+    public Map<String, Object> getHomeworkByCourseIdPaginated(Long courseId, Long userId, int page, int pageSize) {
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        String sid = user.getSchId();
         int offset = (page - 1) * pageSize;
         int total = homeworkMapper.countHomeworkByCourseId(courseId);
-        List<Map<String, Object>> list = homeworkMapper.getHomeworkByCourseIdWithDetailsPaginated(courseId, offset, pageSize);
+        List<Map<String, Object>> list = homeworkMapper.getHomeworkByCourseIdWithDetailsPaginated(courseId, sid, offset, pageSize);
 
         Map<String, Object> result = new HashMap<>();
         result.put("total", total);

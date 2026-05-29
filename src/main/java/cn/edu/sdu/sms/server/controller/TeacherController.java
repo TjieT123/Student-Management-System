@@ -53,7 +53,7 @@ public class TeacherController {
     }
 
     /**
-     * 分页获取作业列表（不含content、teacherId、createTime，含teacherName）
+     * 分页获取作业列表
      */
     @GetMapping("/homework/list")
     public ResponseEntity<Result> getTeacherHomeworkList(@RequestParam(defaultValue = "1") int page,
@@ -69,7 +69,7 @@ public class TeacherController {
     }
 
     /**
-     * 分页获取指定作业的学生提交列表（不含sid、content、comment，含studentName）
+     * 分页获取指定作业的学生提交列表
      */
     @GetMapping("/homework/submit/list")
     public ResponseEntity<Result> getHomeworkSubmissions(@RequestParam Long homeworkId,
