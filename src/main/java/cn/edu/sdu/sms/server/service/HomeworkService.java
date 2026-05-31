@@ -2,9 +2,11 @@ package cn.edu.sdu.sms.server.service;
 
 import cn.edu.sdu.sms.server.mapper.HomeworkMapper;
 import cn.edu.sdu.sms.server.mapper.HomeworkSubmitMapper;
+import cn.edu.sdu.sms.server.mapper.StudentMapperEnhanced;
 import cn.edu.sdu.sms.server.mapper.UserMapper;
 import cn.edu.sdu.sms.server.models.Homework;
 import cn.edu.sdu.sms.server.models.HomeworkSubmit;
+import cn.edu.sdu.sms.server.models.Student;
 import cn.edu.sdu.sms.server.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,9 @@ public class HomeworkService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private StudentMapperEnhanced studentMapper;
 
     public List<Homework> getHomeworkByCourseId(Long courseId) {
         return homeworkMapper.getHomeworkByCourseId(courseId);
@@ -97,12 +102,38 @@ public class HomeworkService {
         return submitMapper.getSubmissionById(id);
     }
 
+    public Map<String, Object> getSubmissionDetailWithStudent(Long id) {
+        HomeworkSubmit submit = submitMapper.getSubmissionById(id);
+        if (submit == null) return null;
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", submit.getId());
+        result.put("homeworkId", submit.getHomeworkId());
+        result.put("sid", submit.getSid());
+        result.put("content", submit.getContent());
+        result.put("score", submit.getScore());
+        result.put("comment", submit.getComment());
+        result.put("status", submit.getStatus());
+        result.put("submitTime", submit.getSubmitTime());
+
+        Student student = studentMapper.getStudentBySid(submit.getSid());
+        result.put("studentName", student != null ? student.getName() : null);
+
+        return result;
+    }
+
     public List<HomeworkSubmit> getSubmissionsByHomeworkId(Long homeworkId) {
         return submitMapper.getSubmissionsByHomeworkId(homeworkId);
     }
 
-    public HomeworkSubmit submitHomework(Long homeworkId, String studentId, String content) {
-        HomeworkSubmit existing = submitMapper.getSubmissionByHomeworkIdAndSid(homeworkId, studentId);
+    public HomeworkSubmit submitHomework(Long homeworkId, Long userId, String content) {
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        String sid = user.getSchId();
+
+        HomeworkSubmit existing = submitMapper.getSubmissionByHomeworkIdAndSid(homeworkId, sid);
         if (existing != null) {
             existing.setContent(content);
             existing.setSubmitTime(LocalDateTime.now());
@@ -113,7 +144,7 @@ public class HomeworkService {
 
         HomeworkSubmit submit = new HomeworkSubmit();
         submit.setHomeworkId(homeworkId);
-        submit.setSid(studentId);
+        submit.setSid(sid);
         submit.setContent(content);
         submit.setStatus("未批改");
         submit.setSubmitTime(LocalDateTime.now());

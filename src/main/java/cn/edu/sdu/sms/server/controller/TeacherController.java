@@ -1,8 +1,11 @@
 package cn.edu.sdu.sms.server.controller;
 
 import cn.edu.sdu.sms.server.date.Result;
+import cn.edu.sdu.sms.server.dto.AiGradeRequest;
+import cn.edu.sdu.sms.server.dto.AiGradeResult;
 import cn.edu.sdu.sms.server.models.Homework;
 import cn.edu.sdu.sms.server.models.HomeworkSubmit;
+import cn.edu.sdu.sms.server.service.AiGradingService;
 import cn.edu.sdu.sms.server.service.HomeworkService;
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +29,9 @@ public class TeacherController {
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    private AiGradingService aiGradingService;
 
     /**
      * 发布新作业
@@ -89,7 +95,7 @@ public class TeacherController {
             return Result.error(401, "Unauthorized");
         }
 
-        HomeworkSubmit submit = homeworkService.getSubmissionById(id);
+        Map<String, Object> submit = homeworkService.getSubmissionDetailWithStudent(id);
         if (submit == null) {
             return Result.error(404, "Submission not found");
         }
@@ -117,6 +123,36 @@ public class TeacherController {
         }
 
         return Result.success(submit, "Homework graded successfully");
+    }
+
+    /**
+     * AI 判卷
+     */
+    @PostMapping("/homework/ai-grade")
+    public ResponseEntity<Result> aiGrade(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
+
+        String role = jwtTokenProvider.getRoleFromToken(token);
+        if (!"TEACHER".equals(role)) {
+            return Result.error(401, "仅教师角色可使用AI判卷功能");
+        }
+
+        Long submitId = Long.parseLong(request.get("submitId").toString());
+        String homeworkTitle = (String) request.get("homeworkTitle");
+        String homeworkContent = (String) request.get("homeworkContent");
+
+        AiGradeRequest aiRequest = new AiGradeRequest(submitId, homeworkTitle, homeworkContent);
+        AiGradeResult result = aiGradingService.grade(aiRequest);
+
+        if (result == null) {
+            // 区分是提交不存在还是AI服务异常
+            return Result.error(503, "AI评分服务暂时不可用，请稍后重试或手动批改");
+        }
+
+        return Result.success(result, "AI评分完成");
     }
 
     /**

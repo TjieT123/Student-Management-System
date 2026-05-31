@@ -67,7 +67,7 @@ public class StudentController {
     @PostMapping("/api/student/homework/submit")
     public ResponseEntity<Result> submitHomework(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
         String token = getTokenFromRequest(httpRequest);
-        String studentId = jwtTokenProvider.getUserIdFromToken(token);
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
 
         Long homeworkId = Long.parseLong(request.get("homeworkId").toString());
         String content = (String) request.get("content");
@@ -85,8 +85,12 @@ public class StudentController {
             return Result.error(400, "Homework deadline has passed");
         }
 
-        HomeworkSubmit submit = homeworkService.submitHomework(homeworkId, studentId, content);
-        return Result.success(submit, "Homework submitted successfully");
+        try {
+            HomeworkSubmit submit = homeworkService.submitHomework(homeworkId, userId, content);
+            return Result.success(submit, "Homework submitted successfully");
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
     }
 
     /**
