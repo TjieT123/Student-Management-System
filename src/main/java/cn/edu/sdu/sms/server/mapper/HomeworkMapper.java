@@ -31,7 +31,7 @@ public interface HomeworkMapper {
     @Select("select count(*) from homework")
     int countAllHomework();
 
-    @Select("select h.id, h.title, h.deadline, c.course_name as courseName, t.name as teacherName, " +
+    @Select("select h.id, h.title, h.deadline, c.course_name as courseName, t.name as teacherName, hs.score as score, " +
             "case when hs.id is null then 'UNSUBMIT' " +
             "when hs.status = 'GRADED' then 'GRADED' " +
             "when h.deadline < now() then 'LATE' " +
