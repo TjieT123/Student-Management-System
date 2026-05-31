@@ -186,6 +186,20 @@ public class AdminService {
         courseMapper.deleteCourse(id);
     }
 
+    // 分页获取指定教师的课程列表（供管理员使用）
+    public Map<String, Object> getTeacherCoursesByTeacherId(String teacherId, int page, int pageSize) {
+        int offset = (page - 1) * pageSize;
+        int total = courseMapper.countTeacherCourses(teacherId);
+        List<Map<String, Object>> list = courseMapper.getTeacherCourses(teacherId, offset, pageSize);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("page", page);
+        result.put("pageSize", pageSize);
+        result.put("list", list);
+        return result;
+    }
+
     // 获取全部教师
     public List<Teacher> getAllTeachers() {
         return teacherMapper.getAllTeachers();
@@ -229,6 +243,12 @@ public class AdminService {
     // 删除教师
     public void deleteTeacher(String schId) {
         teacherMapper.deleteTeacher(schId);
+    }
+
+    // 删除教师（级联删除关联的 user 记录）
+    public void deleteTeacherCascade(String schId) {
+        teacherMapper.deleteTeacher(schId);
+        userMapper.deleteUserBySchId(schId);
     }
 
     // 获取全部学生
@@ -294,5 +314,49 @@ public class AdminService {
     // 删除学生
     public void deleteStudent(String sid) {
         studentMapper.deleteStudent(sid);
+    }
+
+    // 删除学生（级联删除关联的 user 记录）
+    public void deleteStudentCascade(String sid) {
+        studentMapper.deleteStudent(sid);
+        userMapper.deleteUserBySchId(sid);
+    }
+
+    // 原子操作：同时创建学生用户（user + student）
+    public Map<String, Object> addStudentUser(Map<String, String> request) {
+        String username = request.get("username");
+        String password = request.get("password");
+        String name = request.get("name");
+        String phone = request.get("phone");
+        String sid = request.get("sid");
+        String major = request.get("major");
+        String gender = request.get("gender");
+        String sClassStr = request.get("s_class");
+
+        // 创建 user 记录
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setName(name);
+        user.setRole("STUDENT");
+        user.setPhone(phone);
+        user.setSchId(sid);
+        userMapper.insertUser(user);
+
+        // 创建 student 记录
+        Student student = new Student();
+        student.setSid(sid);
+        student.setName(name);
+        student.setMajor(major);
+        student.setGender(gender);
+        if (sClassStr != null && !sClassStr.trim().isEmpty()) {
+            student.setSClass(Integer.parseInt(sClassStr.trim()));
+        }
+        studentMapper.insertStudent(student);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("user", user);
+        result.put("student", student);
+        return result;
     }
 }

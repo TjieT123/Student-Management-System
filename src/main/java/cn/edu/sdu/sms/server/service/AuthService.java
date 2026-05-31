@@ -118,5 +118,17 @@ public class AuthService {
     public int deleteUser(Long id) {
         return userMapper.deleteUser(id);
     }
+
+    /**
+     * Change password — returns null on failure, user id on success
+     */
+    public Long changePassword(Long userId, String oldPassword, String newPassword) {
+        User user = userMapper.getUserById(userId);
+        if (user == null) return null;
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) return null;
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userMapper.updateUser(user);
+        return userId;
+    }
 }
 

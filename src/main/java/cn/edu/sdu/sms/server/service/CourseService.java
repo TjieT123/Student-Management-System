@@ -30,21 +30,21 @@ public class CourseService {
     }
 
     /**
-     * 分页获取课程列表（不含detail和teacherId，含teacherName），支持按id和courseName筛选
+     * 分页获取课程列表（不含detail和teacherId，含teacherName），支持按id、courseName、teacherId筛选
      */
-    public Map<String, Object> getCoursesPaginated(int page, int pageSize, Long id, String courseName) {
+    public Map<String, Object> getCoursesPaginated(int page, int pageSize, Long id, String courseName, String teacherId) {
         int offset = (page - 1) * pageSize;
         int total;
         List<Map<String, Object>> list;
 
-        boolean hasFilter = id != null || (courseName != null && !courseName.isEmpty());
+        boolean hasFilter = id != null || (courseName != null && !courseName.isEmpty()) || (teacherId != null && !teacherId.isEmpty());
 
         if (hasFilter) {
-            total = courseMapper.countCoursesFiltered(id, courseName);
+            total = courseMapper.countCoursesFiltered(id, courseName, teacherId);
             if (total == 0) {
                 list = new ArrayList<>();
             } else {
-                list = courseMapper.getCoursesWithTeacherFiltered(id, courseName, offset, pageSize);
+                list = courseMapper.getCoursesWithTeacherFiltered(id, courseName, teacherId, offset, pageSize);
             }
         } else {
             total = courseMapper.countCourses();

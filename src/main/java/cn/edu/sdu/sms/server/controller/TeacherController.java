@@ -69,7 +69,7 @@ public class TeacherController {
     }
 
     /**
-     * 分页获取指定作业的学生提交列表
+     * 分页获取指定作业的学生提交列表（不含 content、comment，含 studentName）
      */
     @GetMapping("/homework/submit/list")
     public ResponseEntity<Result> getHomeworkSubmissions(@RequestParam Long homeworkId,
@@ -80,10 +80,33 @@ public class TeacherController {
     }
 
     /**
+     * 获取单个提交详情（含 content、comment 等完整信息）
+     */
+    @GetMapping("/homework/submission/{id}")
+    public ResponseEntity<Result> getSubmissionDetail(@PathVariable Long id, HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
+
+        HomeworkSubmit submit = homeworkService.getSubmissionById(id);
+        if (submit == null) {
+            return Result.error(404, "Submission not found");
+        }
+
+        return Result.success(submit, "Submission retrieved");
+    }
+
+    /**
      * 批改学生作业
      */
     @PostMapping("/homework/check")
-    public ResponseEntity<Result> gradeHomework(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<Result> gradeHomework(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
+
         Long submitId = Long.parseLong(request.get("submitId").toString());
         Integer score = Integer.parseInt(request.get("score").toString());
         String comment = (String) request.get("comment");

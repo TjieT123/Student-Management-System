@@ -48,5 +48,11 @@ public interface UserMapper {
 
     @Delete("delete from user where id = #{id}")
     int deleteUser(Long id);
+
+    @Select("select * from user where sch_id = #{schId}")
+    User getUserBySchId(@Param("schId") String schId);
+
+    @Delete("delete from user where sch_id = #{schId}")
+    int deleteUserBySchId(@Param("schId") String schId);
 }
 

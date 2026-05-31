@@ -34,19 +34,21 @@ public interface CourseMapper {
             "<where>" +
             "<if test='id != null'>and c.id = #{id}</if>" +
             "<if test='courseName != null and courseName != \"\"'>and c.course_name like concat('%', #{courseName}, '%')</if>" +
+            "<if test='teacherId != null and teacherId != \"\"'>and c.teacher_id = #{teacherId}</if>" +
             "</where>" +
             "order by c.id LIMIT #{limit} OFFSET #{offset}" +
             "</script>")
-    List<Map<String, Object>> getCoursesWithTeacherFiltered(@Param("id") Long id, @Param("courseName") String courseName, @Param("offset") int offset, @Param("limit") int limit);
+    List<Map<String, Object>> getCoursesWithTeacherFiltered(@Param("id") Long id, @Param("courseName") String courseName, @Param("teacherId") String teacherId, @Param("offset") int offset, @Param("limit") int limit);
 
     @Select("<script>" +
             "select count(*) from course c " +
             "<where>" +
             "<if test='id != null'>and c.id = #{id}</if>" +
             "<if test='courseName != null and courseName != \"\"'>and c.course_name like concat('%', #{courseName}, '%')</if>" +
+            "<if test='teacherId != null and teacherId != \"\"'>and c.teacher_id = #{teacherId}</if>" +
             "</where>" +
             "</script>")
-    int countCoursesFiltered(@Param("id") Long id, @Param("courseName") String courseName);
+    int countCoursesFiltered(@Param("id") Long id, @Param("courseName") String courseName, @Param("teacherId") String teacherId);
 
     @Insert("insert into course(course_name, id, detail, address, teacher_id) " +
             "values(#{courseName}, #{id}, #{detail}, #{address}, #{teacherId})")

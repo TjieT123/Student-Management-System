@@ -31,8 +31,9 @@ public class CourseController {
     public ResponseEntity<Result> getAllCourses(@RequestParam(defaultValue = "1") int page,
                                                 @RequestParam(defaultValue = "10") int pageSize,
                                                 @RequestParam(required = false) Long id,
-                                                @RequestParam(required = false) String courseName) {
-        Map<String, Object> result = courseService.getCoursesPaginated(page, pageSize, id, courseName);
+                                                @RequestParam(required = false) String courseName,
+                                                @RequestParam(required = false) String teacherId) {
+        Map<String, Object> result = courseService.getCoursesPaginated(page, pageSize, id, courseName, teacherId);
         return Result.success(result, "Courses retrieved successfully");
     }
 

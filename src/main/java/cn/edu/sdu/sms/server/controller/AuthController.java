@@ -3,15 +3,17 @@ package cn.edu.sdu.sms.server.controller;
 import cn.edu.sdu.sms.server.date.Result;
 import cn.edu.sdu.sms.server.models.User;
 import cn.edu.sdu.sms.server.service.AuthService;
+import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 认证接口，提供用户注册、登录和Token刷新功能。
+ * 认证接口，提供用户注册、登录、Token刷新和密码修改功能。
  */
 @RestController
 @RequestMapping("/auth")
@@ -19,6 +21,9 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
     /**
      * 登录
@@ -84,6 +89,43 @@ public class AuthController {
         response.put("token", newToken);
 
         return Result.success(response, "Token refreshed");
+    }
+
+    /**
+     * 修改密码
+     */
+    @PostMapping("/change-password")
+    public ResponseEntity<Result> changePassword(@RequestBody Map<String, String> request, HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
+
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+        String oldPassword = request.get("oldPassword");
+        String newPassword = request.get("newPassword");
+
+        if (oldPassword == null || newPassword == null) {
+            return Result.error(400, "oldPassword and newPassword are required");
+        }
+
+        Long result = authService.changePassword(userId, oldPassword, newPassword);
+        if (result == null) {
+            return Result.error(400, "Invalid old password or user not found");
+        }
+
+        return Result.success(null, "Password changed successfully");
+    }
+
+    /**
+     * 从HTTP请求中提取Bearer Token
+     */
+    private String getTokenFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
     }
 }
 
