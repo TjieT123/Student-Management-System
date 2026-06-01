@@ -62,6 +62,28 @@ public class StudentController {
     }
 
     /**
+     * 获取当前学生对指定作业的提交记录
+     */
+    @GetMapping("/api/student/homework/my-submission")
+    public ResponseEntity<Result> getMySubmission(@RequestParam Long homeworkId, HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+
+        try {
+            HomeworkSubmit submit = homeworkService.getMySubmission(homeworkId, userId);
+            if (submit == null) {
+                return Result.error(404, "Submission not found");
+            }
+            return Result.success(submit, "ok");
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
+    }
+
+    /**
      * 提交作业
      */
     @PostMapping("/api/student/homework/submit")
@@ -98,7 +120,7 @@ public class StudentController {
      */
     @GetMapping("/api/student/homework/submission/{id}")
     public ResponseEntity<Result> getSubmissionDetails(@PathVariable Long id) {
-        HomeworkSubmit submit = homeworkService.getSubmissionById(id);
+        Map<String, Object> submit = homeworkService.getSubmissionDetailWithStudent(id);
         if (submit == null) {
             return Result.error(404, "Submission not found");
         }

@@ -98,6 +98,14 @@ public class HomeworkService {
         return submitMapper.getSubmissionByHomeworkIdAndSid(homeworkId, sid);
     }
 
+    public HomeworkSubmit getMySubmission(Long homeworkId, Long userId) {
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        return submitMapper.getSubmissionByHomeworkIdAndSid(homeworkId, user.getSchId());
+    }
+
     public HomeworkSubmit getSubmissionById(Long id) {
         return submitMapper.getSubmissionById(id);
     }
@@ -118,6 +126,14 @@ public class HomeworkService {
 
         Student student = studentMapper.getStudentBySid(submit.getSid());
         result.put("studentName", student != null ? student.getName() : null);
+
+        Homework homework = homeworkMapper.getHomeworkById(submit.getHomeworkId());
+        if (homework != null && homework.getTeacherId() != null) {
+            User teacher = userMapper.getUserById(Long.parseLong(homework.getTeacherId()));
+            result.put("teacherName", teacher != null ? teacher.getName() : null);
+        } else {
+            result.put("teacherName", null);
+        }
 
         return result;
     }
