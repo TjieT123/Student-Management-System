@@ -1,6 +1,7 @@
 package cn.edu.sdu.sms.server.controller;
 
 import cn.edu.sdu.sms.server.date.Result;
+import cn.edu.sdu.sms.server.dto.RegisterRequest;
 import cn.edu.sdu.sms.server.models.User;
 import cn.edu.sdu.sms.server.service.AuthService;
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
@@ -46,22 +47,16 @@ public class AuthController {
     }
 
     /**
-     * 注册
+     * 注册（自动创建关联的 student 或 teacher 记录）
      */
     @PostMapping("/register")
-    public ResponseEntity<Result> register(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
-        String name = request.get("name");
-        String role = request.get("role");
-        String phone = request.get("phone");
-        String schId = request.get("sch_id");
-
-        if (username == null || password == null || name == null || role == null || schId == null) {
+    public ResponseEntity<Result> register(@RequestBody RegisterRequest req) {
+        if (req.getUsername() == null || req.getPassword() == null
+                || req.getName() == null || req.getRole() == null || req.getSch_id() == null) {
             return Result.error(400, "Username, password, name, role, and sch_id are required");
         }
 
-        User user = authService.register(username, password, name, role, phone, schId);
+        User user = authService.register(req);
         if (user == null) {
             return Result.error(409, "Username already exists");
         }

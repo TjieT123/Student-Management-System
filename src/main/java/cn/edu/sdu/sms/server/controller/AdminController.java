@@ -47,9 +47,11 @@ public class AdminController {
     @GetMapping("/user/teacher/list")
     public ResponseEntity<Result> getTeacherUserList(@RequestParam(defaultValue = "1") int page,
                                                      @RequestParam(defaultValue = "10") int pageSize,
+                                                     @RequestParam(required = false) String schId,
+                                                     @RequestParam(required = false) String name,
                                                      HttpServletRequest httpRequest) {
         if (requireAdmin(httpRequest) == null) return Result.error(401, "Admin authentication required");
-        Map<String, Object> result = adminService.getUserListByRole("TEACHER", page, pageSize);
+        Map<String, Object> result = adminService.getUserListByRole("TEACHER", page, pageSize, schId, name);
         return Result.success(result, "Teacher user list retrieved");
     }
 
@@ -59,9 +61,11 @@ public class AdminController {
     @GetMapping("/user/student/list")
     public ResponseEntity<Result> getStudentUserList(@RequestParam(defaultValue = "1") int page,
                                                      @RequestParam(defaultValue = "10") int pageSize,
+                                                     @RequestParam(required = false) String schId,
+                                                     @RequestParam(required = false) String name,
                                                      HttpServletRequest httpRequest) {
         if (requireAdmin(httpRequest) == null) return Result.error(401, "Admin authentication required");
-        Map<String, Object> result = adminService.getUserListByRole("STUDENT", page, pageSize);
+        Map<String, Object> result = adminService.getUserListByRole("STUDENT", page, pageSize, schId, name);
         return Result.success(result, "Student user list retrieved");
     }
 
@@ -71,9 +75,11 @@ public class AdminController {
     @GetMapping("/user/admin/list")
     public ResponseEntity<Result> getAdminUserList(@RequestParam(defaultValue = "1") int page,
                                                    @RequestParam(defaultValue = "10") int pageSize,
+                                                   @RequestParam(required = false) String schId,
+                                                   @RequestParam(required = false) String name,
                                                    HttpServletRequest httpRequest) {
         if (requireAdmin(httpRequest) == null) return Result.error(401, "Admin authentication required");
-        Map<String, Object> result = adminService.getUserListByRole("ADMIN", page, pageSize);
+        Map<String, Object> result = adminService.getUserListByRole("ADMIN", page, pageSize, schId, name);
         return Result.success(result, "Admin user list retrieved");
     }
 
@@ -119,10 +125,28 @@ public class AdminController {
      */
     @PostMapping("/user/update")
     public ResponseEntity<Result> updateUser(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
-        if (requireAdmin(httpRequest) == null) return Result.error(401, "Admin authentication required");
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null || !jwtTokenProvider.validateToken(token)) {
+            return Result.error(401, "Unauthorized");
+        }
+
+        Long currentUserId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+        String role = jwtTokenProvider.getRoleFromToken(token);
+
         Object idObj = request.get("id");
         if (idObj == null || idObj.toString().trim().isEmpty()) {
             return Result.error(400, "User ID is required");
+        }
+        Long targetId = Long.parseLong(idObj.toString().trim());
+
+        // 非 ADMIN 用户只能修改自己的信息
+        if (!"ADMIN".equals(role) && !currentUserId.equals(targetId)) {
+            return Result.error(403, "You can only update your own profile");
+        }
+
+        // 非 ADMIN 用户不允许修改 role 字段
+        if (!"ADMIN".equals(role)) {
+            request.remove("role");
         }
 
         User user = adminService.updateUser(request);
@@ -221,10 +245,14 @@ public class AdminController {
      * 获取所有教师
      */
     @GetMapping("/teacher/list")
-    public ResponseEntity<Result> getTeacherList(HttpServletRequest httpRequest) {
+    public ResponseEntity<Result> getTeacherList(@RequestParam(defaultValue = "1") int page,
+                                                  @RequestParam(defaultValue = "10") int pageSize,
+                                                  @RequestParam(required = false) String schId,
+                                                  @RequestParam(required = false) String name,
+                                                  HttpServletRequest httpRequest) {
         if (requireAdmin(httpRequest) == null) return Result.error(401, "Admin authentication required");
-        List<Teacher> teachers = adminService.getAllTeachers();
-        return Result.success(teachers, "Teacher list retrieved");
+        Map<String, Object> result = adminService.getTeachersPaginated(page, pageSize, schId, name);
+        return Result.success(result, "Teacher list retrieved");
     }
 
     /**

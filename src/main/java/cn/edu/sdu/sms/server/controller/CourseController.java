@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -88,6 +89,26 @@ public class CourseController {
         try {
             Map<String, Object> result = courseService.getTeacherCoursesPaginated(userId, page, pageSize);
             return Result.success(result, "Teacher courses retrieved successfully");
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
+    }
+
+    /**
+     * 获取课程选课学生列表（仅任课教师可查看）
+     */
+    @GetMapping("/{courseId}/students")
+    public ResponseEntity<Result> getCourseStudents(@PathVariable Long courseId, HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
+
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+
+        try {
+            List<Map<String, Object>> students = courseService.getCourseStudents(courseId, userId);
+            return Result.success(students, "Course students retrieved successfully");
         } catch (RuntimeException e) {
             return Result.error(400, e.getMessage());
         }

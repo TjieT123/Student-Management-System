@@ -43,6 +43,16 @@ public interface HomeworkMapper {
             "order by h.create_time desc LIMIT #{limit} OFFSET #{offset}")
     List<Map<String, Object>> getHomeworkByCourseIdWithDetailsPaginated(@Param("courseId") Long courseId, @Param("sid") String sid, @Param("offset") int offset, @Param("limit") int limit);
 
+    @Select("select h.id, h.title, h.content, h.deadline, " +
+            "c.course_name as courseName, u.name as teacherName, " +
+            "hs.score as score, hs.status as status " +
+            "from homework h " +
+            "left join course c on h.course_id = c.id " +
+            "left join user u on h.teacher_id = u.id " +
+            "left join homework_submit hs on h.id = hs.homework_id and hs.sid = #{sid} " +
+            "where h.id = #{id}")
+    Map<String, Object> getHomeworkContentWithDetails(@Param("id") Long id, @Param("sid") String sid);
+
     @Select("select count(*) from homework where course_id = #{courseId}")
     int countHomeworkByCourseId(@Param("courseId") Long courseId);
 

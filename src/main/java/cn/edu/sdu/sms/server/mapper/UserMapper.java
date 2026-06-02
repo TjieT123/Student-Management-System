@@ -23,19 +23,40 @@ public interface UserMapper {
     @Select("select * from user where username = #{username}")
     User getUserByUsername(String username);
 
-    @Select("select id, username, name, role, phone, sch_id from user where role = #{role} order by id LIMIT #{limit} OFFSET #{offset}")
-    List<Map<String, Object>> getUsersByRolePaginated(@Param("role") String role, @Param("offset") int offset, @Param("limit") int limit);
+    @Select("<script>" +
+            "select id, username, name, role, phone, sch_id from user " +
+            "where role = #{role} " +
+            "<if test='schId != null and schId != \"\"'>and sch_id like concat('%', #{schId}, '%') </if>" +
+            "<if test='name != null and name != \"\"'>and name like concat('%', #{name}, '%') </if>" +
+            "order by id LIMIT #{limit} OFFSET #{offset}" +
+            "</script>")
+    List<Map<String, Object>> getUsersByRolePaginated(@Param("role") String role, @Param("schId") String schId, @Param("name") String name, @Param("offset") int offset, @Param("limit") int limit);
 
-    @Select("select count(*) from user where role = #{role}")
-    int countByRole(@Param("role") String role);
+    @Select("<script>" +
+            "select count(*) from user " +
+            "where role = #{role} " +
+            "<if test='schId != null and schId != \"\"'>and sch_id like concat('%', #{schId}, '%') </if>" +
+            "<if test='name != null and name != \"\"'>and name like concat('%', #{name}, '%') </if>" +
+            "</script>")
+    int countByRole(@Param("role") String role, @Param("schId") String schId, @Param("name") String name);
 
-    @Select("select u.id, u.username, u.name, u.role, u.phone, u.sch_id, s.major, s.gender, s.s_class as sClass " +
+    @Select("<script>" +
+            "select u.id, u.username, u.name, u.role, u.phone, u.sch_id, s.major, s.gender, s.s_class as sClass " +
             "from user u left join student s on u.sch_id = s.sid " +
-            "where u.role = 'STUDENT' order by u.id LIMIT #{limit} OFFSET #{offset}")
-    List<Map<String, Object>> getStudentUsersPaginated(@Param("offset") int offset, @Param("limit") int limit);
+            "where u.role = 'STUDENT' " +
+            "<if test='schId != null and schId != \"\"'>and u.sch_id like concat('%', #{schId}, '%') </if>" +
+            "<if test='name != null and name != \"\"'>and u.name like concat('%', #{name}, '%') </if>" +
+            "order by u.id LIMIT #{limit} OFFSET #{offset}" +
+            "</script>")
+    List<Map<String, Object>> getStudentUsersPaginated(@Param("schId") String schId, @Param("name") String name, @Param("offset") int offset, @Param("limit") int limit);
 
-    @Select("select count(*) from user where role = 'STUDENT'")
-    int countStudentUsers();
+    @Select("<script>" +
+            "select count(*) from user " +
+            "where role = 'STUDENT' " +
+            "<if test='schId != null and schId != \"\"'>and sch_id like concat('%', #{schId}, '%') </if>" +
+            "<if test='name != null and name != \"\"'>and name like concat('%', #{name}, '%') </if>" +
+            "</script>")
+    int countStudentUsers(@Param("schId") String schId, @Param("name") String name);
 
     @Insert("insert into user(username, password, name, role, phone, sch_id) " +
             "values(#{username}, #{password}, #{name}, #{role}, #{phone}, #{schId})")

@@ -149,6 +149,25 @@ public class CourseService {
     }
 
     /**
+     * 获取课程选课学生列表（仅任课教师可查看）
+     */
+    public List<Map<String, Object>> getCourseStudents(Long courseId, Long userId) {
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        Course course = courseMapper.getCourseById(courseId);
+        if (course == null) {
+            throw new RuntimeException("Course not found");
+        }
+        String schId = user.getSchId();
+        if (course.getTeacherId() == null || !course.getTeacherId().equals(schId)) {
+            throw new RuntimeException("Only the course teacher can view enrolled students");
+        }
+        return courseMapper.getEnrolledStudents(courseId);
+    }
+
+    /**
      * 选课
      */
     public void enrollCourse(Long userId, Long courseId) {

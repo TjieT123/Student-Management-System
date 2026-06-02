@@ -22,10 +22,10 @@ public class StudentService {
     /**
      * 分页获取学生列表
      */
-    public Map<String, Object> getStudentsPaginated(int page, int pageSize) {
+    public Map<String, Object> getStudentsPaginated(int page, int pageSize, String sid, String name) {
         int offset = (page - 1) * pageSize;
-        int total = studentMapper.countStudents();
-        List<Student> list = studentMapper.getAllStudentsPaginated(offset, pageSize);
+        int total = studentMapper.countStudents(sid, name);
+        List<Student> list = studentMapper.getAllStudentsPaginated(sid, name, offset, pageSize);
 
         Map<String, Object> result = new HashMap<>();
         result.put("total", total);

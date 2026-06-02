@@ -11,6 +11,7 @@ import cn.edu.sdu.sms.server.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -48,18 +49,19 @@ public class AdminService {
     }
 
     /**
-     * 分页获取用户列表（按角色过滤，不含密码）
+     * 分页获取用户列表（按角色过滤，不含密码），支持按schId和name搜索
      */
-    public Map<String, Object> getUserListByRole(String role, int page, int pageSize) {
+    public Map<String, Object> getUserListByRole(String role, int page, int pageSize, String schId, String name) {
         int offset = (page - 1) * pageSize;
-        int total = userMapper.countByRole(role);
+        int total;
         List<Map<String, Object>> list;
 
         if ("STUDENT".equals(role)) {
-            list = userMapper.getStudentUsersPaginated(offset, pageSize);
-            total = userMapper.countStudentUsers();
+            total = userMapper.countStudentUsers(schId, name);
+            list = userMapper.getStudentUsersPaginated(schId, name, offset, pageSize);
         } else {
-            list = userMapper.getUsersByRolePaginated(role, offset, pageSize);
+            total = userMapper.countByRole(role, schId, name);
+            list = userMapper.getUsersByRolePaginated(role, schId, name, offset, pageSize);
         }
 
         Map<String, Object> result = new HashMap<>();
@@ -75,7 +77,8 @@ public class AdminService {
         return courseMapper.getCourseById(id);
     }
 
-    // 新增用户
+    // 新增用户（自动创建关联的 teacher/student 记录）
+    @Transactional
     public User addUser(Map<String, String> request) {
         String username = request.get("username");
         String password = request.get("password");
@@ -93,10 +96,28 @@ public class AdminService {
         user.setSchId(schId);
 
         userMapper.insertUser(user);
+
+        if ("TEACHER".equals(role)) {
+            if (teacherMapper.getTeacherBySchId(schId) == null) {
+                Teacher teacher = new Teacher();
+                teacher.setSchId(schId);
+                teacher.setName(name);
+                teacherMapper.insertTeacher(teacher);
+            }
+        } else if ("STUDENT".equals(role)) {
+            if (studentMapper.getStudentBySid(schId) == null) {
+                Student student = new Student();
+                student.setSid(schId);
+                student.setName(name);
+                studentMapper.insertStudent(student);
+            }
+        }
+
         return user;
     }
 
-    // 修改用户
+    // 修改用户（同步更新关联的 teacher/student 记录）
+    @Transactional
     public User updateUser(Map<String, Object> request) {
         Object idObj = request.get("id");
         Long id = Long.parseLong(idObj.toString().trim());
@@ -104,6 +125,7 @@ public class AdminService {
         String name = (String) request.get("name");
         String phone = (String) request.get("phone");
         String role = (String) request.get("role");
+        String password = (String) request.get("password");
 
         User user = userMapper.getUserById(id);
         if (user == null) {
@@ -121,13 +143,49 @@ public class AdminService {
                 user.setRole(role);
             }
         }
+        if (password != null && !password.isBlank()) {
+            user.setPassword(passwordEncoder.encode(password));
+        }
 
         userMapper.updateUser(user);
+
+        // 同步更新关联表
+        String schId = user.getSchId();
+        if ("TEACHER".equals(user.getRole())) {
+            Teacher teacher = teacherMapper.getTeacherBySchId(schId);
+            if (teacher != null && name != null) {
+                teacher.setName(name);
+                teacherMapper.updateTeacher(teacher);
+            }
+        } else if ("STUDENT".equals(user.getRole())) {
+            Student student = studentMapper.getStudentBySid(schId);
+            if (student != null) {
+                if (name != null) student.setName(name);
+                String major = (String) request.get("major");
+                String gender = (String) request.get("gender");
+                Object sClassObj = request.get("s_class");
+                if (major != null) student.setMajor(major);
+                if (gender != null) student.setGender(gender);
+                if (sClassObj != null) student.setSClass(Integer.parseInt(sClassObj.toString().trim()));
+                studentMapper.updateStudent(student);
+            }
+        }
+
         return user;
     }
 
-    // 删除用户
+    // 删除用户（级联删除关联的 teacher/student 记录）
+    @Transactional
     public void deleteUser(Long id) {
+        User user = userMapper.getUserById(id);
+        if (user != null) {
+            String schId = user.getSchId();
+            if ("TEACHER".equals(user.getRole())) {
+                teacherMapper.deleteTeacher(schId);
+            } else if ("STUDENT".equals(user.getRole())) {
+                studentMapper.deleteStudent(schId);
+            }
+        }
         userMapper.deleteUser(id);
     }
 
@@ -200,9 +258,23 @@ public class AdminService {
         return result;
     }
 
-    // 获取全部教师
-    public List<Teacher> getAllTeachers() {
-        return teacherMapper.getAllTeachers();
+    // 获取全部教师（支持按schId和name搜索）
+    public List<Teacher> getAllTeachers(String schId, String name) {
+        return teacherMapper.getAllTeachers(schId, name);
+    }
+
+    // 分页获取教师列表（支持按schId和name搜索）
+    public Map<String, Object> getTeachersPaginated(int page, int pageSize, String schId, String name) {
+        int offset = (page - 1) * pageSize;
+        int total = teacherMapper.countTeachers(schId, name);
+        List<Teacher> list = teacherMapper.getTeachersPaginated(schId, name, offset, pageSize);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("page", page);
+        result.put("pageSize", pageSize);
+        result.put("list", list);
+        return result;
     }
 
     // 根据schId获取教师

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -34,8 +35,10 @@ public class StudentController {
      */
     @GetMapping("/getAll")
     public ResponseEntity<Result> getAllStudents(@RequestParam(defaultValue = "1") int page,
-                                                 @RequestParam(defaultValue = "10") int pageSize) {
-        Map<String, Object> result = studentService.getStudentsPaginated(page, pageSize);
+                                                 @RequestParam(defaultValue = "10") int pageSize,
+                                                 @RequestParam(required = false) String sid,
+                                                 @RequestParam(required = false) String name) {
+        Map<String, Object> result = studentService.getStudentsPaginated(page, pageSize, sid, name);
         return Result.success(result, "Students retrieved successfully");
     }
 
@@ -56,6 +59,28 @@ public class StudentController {
         try {
             Map<String, Object> result = homeworkService.getHomeworkByCourseIdPaginated(courseId, userId, page, pageSize);
             return Result.success(result, "Homework list retrieved");
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
+    }
+
+    /**
+     * 获取作业详情（含content、teacherName、deadline、courseName、score、status）
+     */
+    @GetMapping("/api/student/homework/{homeworkId}/content")
+    public ResponseEntity<Result> getHomeworkContent(@PathVariable Long homeworkId, HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+
+        try {
+            Map<String, Object> data = homeworkService.getHomeworkContentWithDetails(homeworkId, userId);
+            if (data == null) {
+                return Result.error(404, "Homework not found");
+            }
+            return Result.success(data, "ok");
         } catch (RuntimeException e) {
             return Result.error(400, e.getMessage());
         }

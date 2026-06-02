@@ -29,8 +29,10 @@ public class AnnouncementController {
      */
     @GetMapping("/list")
     public ResponseEntity<Result> getAllAnnouncements(@RequestParam(defaultValue = "1") int page,
-                                                       @RequestParam(defaultValue = "10") int pageSize) {
-        Map<String, Object> result = announcementService.getAnnouncementsPaginated(page, pageSize);
+                                                       @RequestParam(defaultValue = "10") int pageSize,
+                                                       @RequestParam(required = false) Long id,
+                                                       @RequestParam(required = false) String title) {
+        Map<String, Object> result = announcementService.getAnnouncementsPaginated(page, pageSize, id, title);
         return Result.success(result, "Announcements retrieved successfully");
     }
 

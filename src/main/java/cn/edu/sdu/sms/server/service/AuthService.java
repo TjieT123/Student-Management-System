@@ -1,7 +1,12 @@
 package cn.edu.sdu.sms.server.service;
 
-import cn.edu.sdu.sms.server.models.User;
+import cn.edu.sdu.sms.server.dto.RegisterRequest;
+import cn.edu.sdu.sms.server.mapper.StudentMapperEnhanced;
+import cn.edu.sdu.sms.server.mapper.TeacherMapper;
 import cn.edu.sdu.sms.server.mapper.UserMapper;
+import cn.edu.sdu.sms.server.models.Student;
+import cn.edu.sdu.sms.server.models.Teacher;
+import cn.edu.sdu.sms.server.models.User;
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +27,12 @@ public class AuthService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private StudentMapperEnhanced studentMapper;
+
+    @Autowired
+    private TeacherMapper teacherMapper;
 
     /**
      * User login
@@ -49,23 +60,40 @@ public class AuthService {
     }
 
     /**
-     * User registration
+     * User registration（自动创建关联的 student 或 teacher 记录）
      */
-    public User register(String username, String password, String name, String role, String phone, String schId) {
-        // Check if user exists
-        if (userMapper.getUserByUsername(username) != null) {
+    public User register(RegisterRequest req) {
+        if (userMapper.getUserByUsername(req.getUsername()) != null) {
             return null;
         }
 
         User user = new User();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setName(name);
-        user.setRole(role);
-        user.setPhone(phone);
-        user.setSchId(schId);
+        user.setUsername(req.getUsername());
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
+        user.setName(req.getName());
+        user.setRole(req.getRole());
+        user.setPhone(req.getPhone());
+        user.setSchId(req.getSch_id());
 
         userMapper.insertUser(user);
+
+        if ("STUDENT".equals(req.getRole())) {
+            Student student = new Student();
+            student.setSid(req.getSch_id());
+            student.setName(req.getName());
+            student.setMajor(req.getMajor());
+            student.setGender(req.getGender());
+            if (req.getS_class() != null) {
+                student.setSClass(req.getS_class());
+            }
+            studentMapper.insertStudent(student);
+        } else if ("TEACHER".equals(req.getRole())) {
+            Teacher teacher = new Teacher();
+            teacher.setSchId(req.getSch_id());
+            teacher.setName(req.getName());
+            teacherMapper.insertTeacher(teacher);
+        }
+
         return user;
     }
 

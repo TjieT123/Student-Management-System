@@ -80,7 +80,7 @@ public interface CourseMapper {
     @Select("select count(*) from student_course where sid = #{sid}")
     int countStudentCoursesBySid(@Param("sid") String sid);
 
-    @Select("select c.id, c.course_name as courseName, c.address as address, t.name as teacherName " +
+    @Select("select c.id, c.course_name as courseName, c.detail as detail, c.address as address, t.name as teacherName " +
             "from course c left join teacher t on c.teacher_id = t.sch_id " +
             "where c.teacher_id = #{teacherId} " +
             "order by c.id LIMIT #{limit} OFFSET #{offset}")
@@ -88,5 +88,10 @@ public interface CourseMapper {
 
     @Select("select count(*) from course where teacher_id = #{teacherId}")
     int countTeacherCourses(@Param("teacherId") String teacherId);
+
+    @Select("select s.sid, s.name, s.major, s.gender, s.s_class as sClass " +
+            "from student_course sc join student s on sc.sid = s.sid " +
+            "where sc.course_id = #{courseId} order by s.sid")
+    List<Map<String, Object>> getEnrolledStudents(@Param("courseId") Long courseId);
 }
 

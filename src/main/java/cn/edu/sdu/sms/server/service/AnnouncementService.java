@@ -26,10 +26,10 @@ public class AnnouncementService {
     /**
      * 分页获取公告列表
      */
-    public Map<String, Object> getAnnouncementsPaginated(int page, int pageSize) {
+    public Map<String, Object> getAnnouncementsPaginated(int page, int pageSize, Long id, String title) {
         int offset = (page - 1) * pageSize;
-        int total = announcementMapper.countAnnouncements();
-        List<Map<String, Object>> list = announcementMapper.getAllAnnouncementsPaginated(offset, pageSize);
+        int total = announcementMapper.countAnnouncements(id, title);
+        List<Map<String, Object>> list = announcementMapper.getAllAnnouncementsPaginated(id, title, offset, pageSize);
 
         Map<String, Object> result = new HashMap<>();
         result.put("total", total);

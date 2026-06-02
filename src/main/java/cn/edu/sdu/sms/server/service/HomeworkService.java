@@ -37,6 +37,18 @@ public class HomeworkService {
         return homeworkMapper.getHomeworkById(id);
     }
 
+    public Map<String, Object> getHomeworkContentWithDetails(Long homeworkId, Long userId) {
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        Map<String, Object> result = homeworkMapper.getHomeworkContentWithDetails(homeworkId, user.getSchId());
+        if (result == null) {
+            return null;
+        }
+        return result;
+    }
+
     public List<Homework> getAllHomework() {
         return homeworkMapper.getAllHomework();
     }
