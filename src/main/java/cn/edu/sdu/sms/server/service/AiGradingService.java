@@ -154,7 +154,7 @@ public class AiGradingService {
                         Map.of("role", "user", "content", userPrompt)
                 ),
                 "temperature", 0.5,
-                "max_tokens", 800
+                "max_tokens", 1200
         );
 
         HttpHeaders headers = new HttpHeaders();

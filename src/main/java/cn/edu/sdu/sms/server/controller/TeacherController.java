@@ -156,6 +156,59 @@ public class TeacherController {
     }
 
     /**
+     * 编辑作业
+     */
+    @PostMapping("/homework/update")
+    public ResponseEntity<Result> updateHomework(@RequestBody Map<String, Object> request,
+                                                  HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
+        String role = jwtTokenProvider.getRoleFromToken(token);
+        if (!"TEACHER".equals(role)) {
+            return Result.error(401, "仅教师角色可编辑作业");
+        }
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+
+        Long id = Long.parseLong(request.get("id").toString());
+        String title = (String) request.get("title");
+        String content = (String) request.get("content");
+        String deadline = (String) request.get("deadline");
+
+        try {
+            Homework homework = homeworkService.updateHomework(id, title, content, deadline, userId);
+            return Result.success(homework, "Homework updated successfully");
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
+    }
+
+    /**
+     * 删除作业（级联删除提交记录）
+     */
+    @PostMapping("/homework/delete/{id}")
+    public ResponseEntity<Result> deleteHomework(@PathVariable Long id,
+                                                  HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
+        String role = jwtTokenProvider.getRoleFromToken(token);
+        if (!"TEACHER".equals(role)) {
+            return Result.error(401, "仅教师角色可删除作业");
+        }
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+
+        try {
+            homeworkService.deleteHomework(id, userId);
+            return Result.success(null, "Homework deleted successfully");
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
+    }
+
+    /**
      * 作业提交统计
      */
     @GetMapping("/homework/{homeworkId}/statistics")

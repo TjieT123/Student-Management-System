@@ -11,6 +11,7 @@ import cn.edu.sdu.sms.server.models.Student;
 import cn.edu.sdu.sms.server.models.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -39,6 +40,48 @@ public class HomeworkService {
 
     public Homework getHomeworkById(Long id) {
         return homeworkMapper.getHomeworkById(id);
+    }
+
+    @Transactional
+    public Homework updateHomework(Long id, String title, String content, String deadline, Long userId) {
+        Homework homework = homeworkMapper.getHomeworkById(id);
+        if (homework == null) {
+            throw new RuntimeException("Homework not found");
+        }
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        if (homework.getTeacherId() == null || !homework.getTeacherId().equals(user.getSchId())) {
+            throw new RuntimeException("Only the homework owner can edit");
+        }
+
+        if (title != null) homework.setTitle(title);
+        if (content != null) homework.setContent(content);
+        if (deadline != null) {
+            homework.setDeadline(LocalDateTime.parse(deadline, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        }
+
+        homeworkMapper.updateHomeworkSelective(homework);
+        return homework;
+    }
+
+    @Transactional
+    public void deleteHomework(Long id, Long userId) {
+        Homework homework = homeworkMapper.getHomeworkById(id);
+        if (homework == null) {
+            throw new RuntimeException("Homework not found");
+        }
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        if (homework.getTeacherId() == null || !homework.getTeacherId().equals(user.getSchId())) {
+            throw new RuntimeException("Only the homework owner can delete");
+        }
+
+        submitMapper.deleteByHomeworkId(id);
+        homeworkMapper.deleteHomework(id);
     }
 
     public Map<String, Object> getHomeworkContentWithDetails(Long homeworkId, Long userId) {

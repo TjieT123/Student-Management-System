@@ -59,6 +59,17 @@ public interface HomeworkMapper {
     @Insert("insert into homework(course_id, title, content, deadline, teacher_id, create_time) values(#{courseId}, #{title}, #{content}, #{deadline}, #{teacherId}, #{createTime})")
     int insertHomework(Homework homework);
 
+    @Update("<script>" +
+            "update homework " +
+            "<set>" +
+            "<if test='title != null'>title = #{title}, </if>" +
+            "<if test='content != null'>content = #{content}, </if>" +
+            "<if test='deadline != null'>deadline = #{deadline}, </if>" +
+            "</set>" +
+            "where id = #{id}" +
+            "</script>")
+    int updateHomeworkSelective(Homework homework);
+
     @Update("update homework set course_id = #{courseId}, title = #{title}, content = #{content}, deadline = #{deadline}, teacher_id = #{teacherId}, create_time = #{createTime} where id = #{id}")
     int updateHomework(Homework homework);
 

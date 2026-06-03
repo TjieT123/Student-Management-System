@@ -242,6 +242,16 @@ public class AdminController {
     }
 
     /**
+     * 系统统计（各角色用户数量）
+     */
+    @GetMapping("/statistics")
+    public ResponseEntity<Result> getStatistics(HttpServletRequest httpRequest) {
+        if (requireAdmin(httpRequest) == null) return Result.error(401, "Admin authentication required");
+        Map<String, Object> result = adminService.getStatistics();
+        return Result.success(result, "Statistics retrieved");
+    }
+
+    /**
      * 获取所有教师
      */
     @GetMapping("/teacher/list")

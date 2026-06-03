@@ -75,5 +75,8 @@ public interface UserMapper {
 
     @Delete("delete from user where sch_id = #{schId}")
     int deleteUserBySchId(@Param("schId") String schId);
+
+    @Select("select count(*) from user")
+    int countTotalUsers();
 }
 

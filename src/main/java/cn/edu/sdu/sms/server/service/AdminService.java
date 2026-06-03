@@ -258,6 +258,16 @@ public class AdminService {
         return result;
     }
 
+    // 获取系统统计信息
+    public Map<String, Object> getStatistics() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalUsers", userMapper.countTotalUsers());
+        result.put("adminCount", userMapper.countByRole("ADMIN", null, null));
+        result.put("teacherCount", userMapper.countByRole("TEACHER", null, null));
+        result.put("studentCount", userMapper.countByRole("STUDENT", null, null));
+        return result;
+    }
+
     // 获取全部教师（支持按schId和name搜索）
     public List<Teacher> getAllTeachers(String schId, String name) {
         return teacherMapper.getAllTeachers(schId, name);
