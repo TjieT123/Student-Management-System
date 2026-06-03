@@ -52,7 +52,7 @@ public class HomeworkService {
         if (user == null) {
             throw new RuntimeException("User not found");
         }
-        if (homework.getTeacherId() == null || !homework.getTeacherId().equals(user.getSchId())) {
+        if (homework.getTeacherId() == null || !homework.getTeacherId().equals(userId.toString())) {
             throw new RuntimeException("Only the homework owner can edit");
         }
 
@@ -72,11 +72,7 @@ public class HomeworkService {
         if (homework == null) {
             throw new RuntimeException("Homework not found");
         }
-        User user = userMapper.getUserById(userId);
-        if (user == null) {
-            throw new RuntimeException("User not found");
-        }
-        if (homework.getTeacherId() == null || !homework.getTeacherId().equals(user.getSchId())) {
+        if (homework.getTeacherId() == null || !homework.getTeacherId().equals(userId.toString())) {
             throw new RuntimeException("Only the homework owner can delete");
         }
 
