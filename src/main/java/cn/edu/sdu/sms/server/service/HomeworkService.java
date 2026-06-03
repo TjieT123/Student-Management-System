@@ -1,5 +1,6 @@
 package cn.edu.sdu.sms.server.service;
 
+import cn.edu.sdu.sms.server.mapper.CourseMapper;
 import cn.edu.sdu.sms.server.mapper.HomeworkMapper;
 import cn.edu.sdu.sms.server.mapper.HomeworkSubmitMapper;
 import cn.edu.sdu.sms.server.mapper.StudentMapperEnhanced;
@@ -28,6 +29,9 @@ public class HomeworkService {
 
     @Autowired
     private StudentMapperEnhanced studentMapper;
+
+    @Autowired
+    private CourseMapper courseMapper;
 
     public List<Homework> getHomeworkByCourseId(Long courseId) {
         return homeworkMapper.getHomeworkByCourseId(courseId);
@@ -103,6 +107,54 @@ public class HomeworkService {
         result.put("page", page);
         result.put("pageSize", pageSize);
         result.put("list", list);
+        return result;
+    }
+
+    public Map<String, Object> getHomeworkStatistics(Long homeworkId, Long userId) {
+        Homework homework = homeworkMapper.getHomeworkById(homeworkId);
+        if (homework == null) {
+            throw new RuntimeException("Homework not found");
+        }
+
+        // 权限校验：当前教师必须是该作业所属课程的任课教师
+        cn.edu.sdu.sms.server.models.Course course = courseMapper.getCourseById(homework.getCourseId());
+        if (course == null) {
+            throw new RuntimeException("Course not found");
+        }
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        if (course.getTeacherId() == null || !course.getTeacherId().equals(user.getSchId())) {
+            throw new RuntimeException("Only the course teacher can view statistics");
+        }
+
+        int totalStudents = courseMapper.countStudentsByCourseId(homework.getCourseId());
+        List<Integer> scores = submitMapper.getScoresByHomeworkId(homeworkId);
+        int submittedCount = scores.size();
+        int unsubmittedCount = totalStudents - submittedCount;
+
+        int fail = 0, pass = 0, good = 0, excellent = 0;
+        for (Integer s : scores) {
+            if (s == null) continue;
+            if (s < 60) fail++;
+            else if (s < 70) pass++;
+            else if (s < 85) good++;
+            else excellent++;
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalStudents", totalStudents);
+        result.put("submittedCount", submittedCount);
+        result.put("unsubmittedCount", unsubmittedCount);
+
+        Map<String, Integer> distribution = new HashMap<>();
+        distribution.put("fail", fail);
+        distribution.put("pass", pass);
+        distribution.put("good", good);
+        distribution.put("excellent", excellent);
+        result.put("distribution", distribution);
+
         return result;
     }
 

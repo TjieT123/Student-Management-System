@@ -156,6 +156,30 @@ public class TeacherController {
     }
 
     /**
+     * 作业提交统计
+     */
+    @GetMapping("/homework/{homeworkId}/statistics")
+    public ResponseEntity<Result> getHomeworkStatistics(@PathVariable Long homeworkId,
+                                                         HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
+        String role = jwtTokenProvider.getRoleFromToken(token);
+        if (!"TEACHER".equals(role)) {
+            return Result.error(401, "仅教师角色可查看统计");
+        }
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+
+        try {
+            Map<String, Object> result = homeworkService.getHomeworkStatistics(homeworkId, userId);
+            return Result.success(result, "Statistics retrieved");
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
+    }
+
+    /**
      * 从HTTP请求中提取Bearer Token
      */
     private String getTokenFromRequest(HttpServletRequest request) {

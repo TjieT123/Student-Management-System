@@ -142,6 +142,79 @@ public class AiGradingService {
         }
     }
 
+    public String getSuggestion(String homeworkTitle, String homeworkContent,
+                                  String studentAnswer, Integer score, String teacherComment) {
+        String userPrompt = buildSuggestionPrompt(homeworkTitle, homeworkContent,
+                studentAnswer, score, teacherComment);
+
+        Map<String, Object> body = Map.of(
+                "model", model,
+                "messages", List.of(
+                        Map.of("role", "system", "content", SUGGESTION_SYSTEM_PROMPT),
+                        Map.of("role", "user", "content", userPrompt)
+                ),
+                "temperature", 0.5,
+                "max_tokens", 800
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + apiKey);
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    apiUrl,
+                    new HttpEntity<>(body, headers),
+                    String.class
+            );
+
+            String aiContent = extractAiContent(response.getBody());
+            JsonNode root = objectMapper.readTree(aiContent);
+            return root.path("suggestion").asText();
+        } catch (RestClientException e) {
+            log.error("AI suggestion API call failed: {}", e.getMessage(), e);
+            return null;
+        } catch (Exception e) {
+            log.error("AI suggestion error: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    private static final String SUGGESTION_SYSTEM_PROMPT = """
+        你是一位耐心且富有洞察力的大学课程助教。学生已经收到了作业评分和教师评语，
+        现在需要你根据作业题目、学生答案、教师评语和分数，为学生提供个性化学习改进建议。
+
+        要求：
+        1. 建议应具体、可操作，指出学习中需要加强的知识点或技能
+        2. 语气应鼓励、支持，肯定学生的努力，同时明确指出提升方向
+        3. 建议中可以包含推荐的学习资源方向（如推荐复习某章节、练习某类题型等）
+        4. 长度控制在200-400字
+
+        请以纯净 JSON 格式返回：
+        {"suggestion": "你的建议内容..."}
+        """;
+
+    private String buildSuggestionPrompt(String homeworkTitle, String homeworkContent,
+                                          String studentAnswer, Integer score,
+                                          String teacherComment) {
+        return """
+            作业题目：%s
+
+            作业要求：%s
+
+            学生答案：%s
+
+            教师评分：%d分
+
+            教师评语：%s
+
+            请根据以上信息，为该学生提供个性化的学习改进建议。
+            严格按以下 JSON 格式返回：
+            {"suggestion": "你的建议..."}
+            """.formatted(homeworkTitle, homeworkContent, studentAnswer, score,
+                teacherComment != null ? teacherComment : "无");
+    }
+
     private String buildUserPrompt(String homeworkTitle, String homeworkContent,
                                    String studentSubmission) {
         return """

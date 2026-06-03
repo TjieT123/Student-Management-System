@@ -38,6 +38,9 @@ public interface HomeworkSubmitMapper {
     @Select("select count(*) from homework_submit where homework_id = #{homeworkId}")
     int countByHomeworkId(@Param("homeworkId") Long homeworkId);
 
+    @Select("select score from homework_submit where homework_id = #{homeworkId}")
+    List<Integer> getScoresByHomeworkId(@Param("homeworkId") Long homeworkId);
+
     @Insert("insert into homework_submit(homework_id, sid, content, score, comment, status, submit_time) values(#{homeworkId}, #{sid}, #{content}, #{score}, #{comment}, #{status}, #{submitTime})")
     int insertSubmission(HomeworkSubmit submission);
 

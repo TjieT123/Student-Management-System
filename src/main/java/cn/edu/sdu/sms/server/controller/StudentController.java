@@ -3,6 +3,7 @@ package cn.edu.sdu.sms.server.controller;
 import cn.edu.sdu.sms.server.date.Result;
 import cn.edu.sdu.sms.server.models.Homework;
 import cn.edu.sdu.sms.server.models.HomeworkSubmit;
+import cn.edu.sdu.sms.server.service.AiGradingService;
 import cn.edu.sdu.sms.server.service.HomeworkService;
 import cn.edu.sdu.sms.server.service.StudentService;
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
@@ -29,6 +30,9 @@ public class StudentController {
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    private AiGradingService aiGradingService;
 
     /**
      * 分页获取所有学生信息
@@ -151,6 +155,52 @@ public class StudentController {
         }
 
         return Result.success(submit, "Submission retrieved");
+    }
+
+    /**
+     * AI 学习建议
+     */
+    @PostMapping("/api/student/homework/ai-suggestion")
+    public ResponseEntity<Result> getAiSuggestion(@RequestBody Map<String, Object> request,
+                                                   HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+
+        Long submissionId = Long.parseLong(request.get("submissionId").toString());
+        HomeworkSubmit submit = homeworkService.getSubmissionById(submissionId);
+        if (submit == null) {
+            return Result.error(404, "Submission not found");
+        }
+
+        // 校验当前学生是否为该提交的所属人
+        try {
+            HomeworkSubmit mySubmit = homeworkService.getMySubmission(submit.getHomeworkId(), userId);
+            if (mySubmit == null || !mySubmit.getId().equals(submissionId)) {
+                return Result.error(403, "You can only view suggestions for your own submission");
+            }
+        } catch (RuntimeException e) {
+            return Result.error(403, "Access denied");
+        }
+
+        Homework homework = homeworkService.getHomeworkById(submit.getHomeworkId());
+        if (homework == null) {
+            return Result.error(404, "Homework not found");
+        }
+
+        String suggestion = aiGradingService.getSuggestion(
+                homework.getTitle(), homework.getContent(),
+                submit.getContent(), submit.getScore(), submit.getComment());
+
+        if (suggestion == null) {
+            return Result.error(503, "AI建议服务暂时不可用，请稍后重试");
+        }
+
+        Map<String, String> data = new HashMap<>();
+        data.put("suggestion", suggestion);
+        return Result.success(data, "ok");
     }
 
     /**
