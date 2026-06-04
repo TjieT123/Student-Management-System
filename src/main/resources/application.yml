@@ -20,7 +20,7 @@ jwt:
 ai:
   api:
     url: ${AI_API_URL:https://api.deepseek.com/chat/completions} # AI模型的URL地址
-    key: ${AI_API_KEY:sk-bd216c53cb5f48878bcaa063bce40765} # AI模型的API密钥。注：该密钥为测试使用密钥，会在几个月后失效，失效后请替换为新的密钥。
+    key: ${AI_API_KEY:sk-6fbdad1d1faa4c159e40ab7504ad5e42} # AI模型的API密钥。注：该密钥为测试使用密钥，会在几个月后失效，失效后请替换为新的密钥。
   model: ${AI_MODEL:deepseek-v4-flash} # AI模型的名称
 
 # MyBatis Configuration

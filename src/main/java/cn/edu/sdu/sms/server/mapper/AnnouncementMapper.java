@@ -36,6 +36,17 @@ public interface AnnouncementMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insertAnnouncement(Announcement announcement);
 
+    @Update("<script>" +
+            "update announcement " +
+            "<set>" +
+            "<if test='title != null'>title = #{title}, </if>" +
+            "<if test='content != null'>content = #{content}, </if>" +
+            "<if test='publisherName != null'>publisher_name = #{publisherName}, </if>" +
+            "</set>" +
+            "where id = #{id}" +
+            "</script>")
+    int updateAnnouncementSelective(Announcement announcement);
+
     @Update("update announcement set title = #{title}, content = #{content}, publish_by = #{publishBy}, " +
             "publisher_name = #{publisherName}, publish_time = #{publishTime} where id = #{id}")
     int updateAnnouncement(Announcement announcement);

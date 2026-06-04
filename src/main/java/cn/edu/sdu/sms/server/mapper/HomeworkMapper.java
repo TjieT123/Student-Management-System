@@ -2,6 +2,7 @@ package cn.edu.sdu.sms.server.mapper;
 
 import cn.edu.sdu.sms.server.models.Homework;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Update;
@@ -43,7 +44,7 @@ public interface HomeworkMapper {
             "order by h.create_time desc LIMIT #{limit} OFFSET #{offset}")
     List<Map<String, Object>> getHomeworkByCourseIdWithDetailsPaginated(@Param("courseId") Long courseId, @Param("sid") String sid, @Param("offset") int offset, @Param("limit") int limit);
 
-    @Select("select h.id, h.title, h.content, h.deadline, " +
+    @Select("select h.id, h.title, h.content, h.deadline, h.attachments as attachments, " +
             "c.course_name as courseName, u.name as teacherName, " +
             "hs.score as score, hs.status as status " +
             "from homework h " +
@@ -56,6 +57,7 @@ public interface HomeworkMapper {
     @Select("select count(*) from homework where course_id = #{courseId}")
     int countHomeworkByCourseId(@Param("courseId") Long courseId);
 
+    @Options(useGeneratedKeys = true, keyProperty = "id")
     @Insert("insert into homework(course_id, title, content, deadline, teacher_id, create_time) values(#{courseId}, #{title}, #{content}, #{deadline}, #{teacherId}, #{createTime})")
     int insertHomework(Homework homework);
 
@@ -72,6 +74,12 @@ public interface HomeworkMapper {
 
     @Update("update homework set course_id = #{courseId}, title = #{title}, content = #{content}, deadline = #{deadline}, teacher_id = #{teacherId}, create_time = #{createTime} where id = #{id}")
     int updateHomework(Homework homework);
+
+    @Update("update homework set attachments = #{attachments} where id = #{id}")
+    int updateAttachments(@Param("id") Long id, @Param("attachments") String attachments);
+
+    @Select("select attachments from homework where id = #{id}")
+    String getAttachments(@Param("id") Long id);
 
     @Delete("delete from homework where id = #{id}")
     int deleteHomework(Long id);

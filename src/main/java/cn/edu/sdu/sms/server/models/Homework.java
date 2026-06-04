@@ -20,4 +20,5 @@ public class Homework {
     private String teacherId;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;
+    private String attachments;
 }

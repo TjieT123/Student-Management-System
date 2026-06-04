@@ -76,6 +76,30 @@ public class AnnouncementController {
     }
 
     /**
+     * 更新公告
+     */
+    @PostMapping("/update")
+    public ResponseEntity<Result> updateAnnouncement(@RequestBody Map<String, Object> request,
+                                                      HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) {
+            return Result.error(401, "Unauthorized");
+        }
+
+        Long id = Long.parseLong(request.get("id").toString());
+        String title = (String) request.get("title");
+        String content = (String) request.get("content");
+        String publisherName = (String) request.get("publisherName");
+
+        Announcement announcement = announcementService.updateAnnouncementSelective(id, title, content, publisherName);
+        if (announcement == null) {
+            return Result.error(404, "Announcement not found");
+        }
+
+        return Result.success(announcement, "Announcement updated successfully");
+    }
+
+    /**
      * 删除公告
      */
     @PostMapping("/delete/{id}")

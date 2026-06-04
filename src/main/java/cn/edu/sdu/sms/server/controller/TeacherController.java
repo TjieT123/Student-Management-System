@@ -3,9 +3,11 @@ package cn.edu.sdu.sms.server.controller;
 import cn.edu.sdu.sms.server.date.Result;
 import cn.edu.sdu.sms.server.dto.AiGradeRequest;
 import cn.edu.sdu.sms.server.dto.AiGradeResult;
+import cn.edu.sdu.sms.server.models.AttachmentItem;
 import cn.edu.sdu.sms.server.models.Homework;
 import cn.edu.sdu.sms.server.models.HomeworkSubmit;
 import cn.edu.sdu.sms.server.service.AiGradingService;
+import cn.edu.sdu.sms.server.service.AttachmentService;
 import cn.edu.sdu.sms.server.service.HomeworkService;
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,6 +36,9 @@ public class TeacherController {
 
     @Autowired
     private AiGradingService aiGradingService;
+
+    @Autowired
+    private AttachmentService attachmentService;
 
     /**
      * 发布新作业
@@ -122,7 +129,17 @@ public class TeacherController {
             return Result.error(404, "Submission not found");
         }
 
-        return Result.success(submit, "Homework graded successfully");
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", submit.getId());
+        data.put("homeworkId", submit.getHomeworkId());
+        data.put("sid", submit.getSid());
+        data.put("content", submit.getContent());
+        data.put("score", submit.getScore());
+        data.put("comment", submit.getComment());
+        data.put("status", submit.getStatus());
+        data.put("submitTime", submit.getSubmitTime());
+        data.put("attachments", attachmentService.parseAttachments(submit.getAttachments()));
+        return Result.success(data, "Homework graded successfully");
     }
 
     /**
@@ -203,6 +220,54 @@ public class TeacherController {
         try {
             homeworkService.deleteHomework(id, userId);
             return Result.success(null, "Homework deleted successfully");
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
+    }
+
+    /**
+     * 教师追加作业附件
+     */
+    @PutMapping("/homework/{homeworkId}/attachment")
+    public ResponseEntity<Result> addHomeworkAttachment(@PathVariable String homeworkId,
+                                                         @RequestBody AttachmentItem item,
+                                                         HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) return Result.error(401, "Unauthorized");
+        if (!"TEACHER".equals(jwtTokenProvider.getRoleFromToken(token)))
+            return Result.error(401, "仅教师角色可操作");
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+
+        try {
+            Long hwId = Long.parseLong(homeworkId);
+            List<AttachmentItem> list = homeworkService.addHomeworkAttachment(hwId, item, userId);
+            Map<String, Object> data = new HashMap<>();
+            data.put("totalCount", list.size());
+            data.put("attachments", list);
+            return Result.success(data, "附件上传成功");
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
+    }
+
+    /**
+     * 教师删除作业附件
+     */
+    @DeleteMapping("/homework/{homeworkId}/attachment/{index}")
+    public ResponseEntity<Result> deleteHomeworkAttachment(@PathVariable String homeworkId,
+                                                            @PathVariable int index,
+                                                            HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) return Result.error(401, "Unauthorized");
+        if (!"TEACHER".equals(jwtTokenProvider.getRoleFromToken(token)))
+            return Result.error(401, "仅教师角色可操作");
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+
+        try {
+            homeworkService.removeHomeworkAttachment(Long.parseLong(homeworkId), index, userId);
+            Map<String, Object> data = new HashMap<>();
+            data.put("totalCount", 0);
+            return Result.success(data, "附件删除成功");
         } catch (RuntimeException e) {
             return Result.error(400, e.getMessage());
         }

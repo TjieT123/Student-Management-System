@@ -2,6 +2,7 @@ package cn.edu.sdu.sms.server.mapper;
 
 import cn.edu.sdu.sms.server.models.HomeworkSubmit;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Update;
@@ -41,6 +42,7 @@ public interface HomeworkSubmitMapper {
     @Select("select score from homework_submit where homework_id = #{homeworkId}")
     List<Integer> getScoresByHomeworkId(@Param("homeworkId") Long homeworkId);
 
+    @Options(useGeneratedKeys = true, keyProperty = "id")
     @Insert("insert into homework_submit(homework_id, sid, content, score, comment, status, submit_time) values(#{homeworkId}, #{sid}, #{content}, #{score}, #{comment}, #{status}, #{submitTime})")
     int insertSubmission(HomeworkSubmit submission);
 
@@ -49,6 +51,12 @@ public interface HomeworkSubmitMapper {
 
     @Delete("delete from homework_submit where id = #{id}")
     int deleteSubmission(Long id);
+
+    @Update("update homework_submit set attachments = #{attachments} where id = #{id}")
+    int updateAttachments(@Param("id") Long id, @Param("attachments") String attachments);
+
+    @Select("select attachments from homework_submit where id = #{id}")
+    String getAttachments(@Param("id") Long id);
 
     @Delete("delete from homework_submit where homework_id = #{homeworkId}")
     int deleteByHomeworkId(@Param("homeworkId") Long homeworkId);

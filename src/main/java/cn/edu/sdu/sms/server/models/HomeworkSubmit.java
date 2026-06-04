@@ -20,5 +20,6 @@ public class HomeworkSubmit {
     private String status; // SUBMITTED, GRADED, LATE, UNSUBMIT
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime submitTime;
+    private String attachments;
 }
 

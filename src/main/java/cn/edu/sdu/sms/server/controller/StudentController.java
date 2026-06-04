@@ -1,9 +1,11 @@
 package cn.edu.sdu.sms.server.controller;
 
 import cn.edu.sdu.sms.server.date.Result;
+import cn.edu.sdu.sms.server.models.AttachmentItem;
 import cn.edu.sdu.sms.server.models.Homework;
 import cn.edu.sdu.sms.server.models.HomeworkSubmit;
 import cn.edu.sdu.sms.server.service.AiGradingService;
+import cn.edu.sdu.sms.server.service.AttachmentService;
 import cn.edu.sdu.sms.server.service.HomeworkService;
 import cn.edu.sdu.sms.server.service.StudentService;
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,6 +36,9 @@ public class StudentController {
 
     @Autowired
     private AiGradingService aiGradingService;
+
+    @Autowired
+    private AttachmentService attachmentService;
 
     /**
      * 分页获取所有学生信息
@@ -102,7 +108,7 @@ public class StudentController {
         Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
 
         try {
-            HomeworkSubmit submit = homeworkService.getMySubmission(homeworkId, userId);
+            Map<String, Object> submit = homeworkService.getMySubmission(homeworkId, userId);
             if (submit == null) {
                 return Result.error(404, "Submission not found");
             }
@@ -138,7 +144,17 @@ public class StudentController {
 
         try {
             HomeworkSubmit submit = homeworkService.submitHomework(homeworkId, userId, content);
-            return Result.success(submit, "Homework submitted successfully");
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", submit.getId());
+            data.put("homeworkId", submit.getHomeworkId());
+            data.put("sid", submit.getSid());
+            data.put("content", submit.getContent());
+            data.put("score", submit.getScore());
+            data.put("comment", submit.getComment());
+            data.put("status", submit.getStatus());
+            data.put("submitTime", submit.getSubmitTime());
+            data.put("attachments", attachmentService.parseAttachments(submit.getAttachments()));
+            return Result.success(data, "Homework submitted successfully");
         } catch (RuntimeException e) {
             return Result.error(400, e.getMessage());
         }
@@ -155,6 +171,50 @@ public class StudentController {
         }
 
         return Result.success(submit, "Submission retrieved");
+    }
+
+    /**
+     * 学生追加提交附件
+     */
+    @PutMapping("/api/student/homework/{homeworkId}/attachment")
+    public ResponseEntity<Result> addSubmissionAttachment(@PathVariable String homeworkId,
+                                                           @RequestBody AttachmentItem item,
+                                                           HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) return Result.error(401, "Unauthorized");
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+
+        try {
+            Long hwId = Long.parseLong(homeworkId);
+            List<AttachmentItem> list = homeworkService.addSubmissionAttachment(hwId, userId, item);
+            Map<String, Object> data = new HashMap<>();
+            data.put("totalCount", list.size());
+            return Result.success(data, "附件上传成功");
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
+    }
+
+    /**
+     * 学生删除提交附件
+     */
+    @DeleteMapping("/api/student/homework/attachment/{index}")
+    public ResponseEntity<Result> deleteSubmissionAttachment(@PathVariable int index,
+                                                              @RequestBody Map<String, Object> request,
+                                                              HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) return Result.error(401, "Unauthorized");
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+        Long homeworkId = Long.parseLong(request.get("homeworkId").toString());
+
+        try {
+            homeworkService.removeSubmissionAttachment(index, homeworkId, userId);
+            Map<String, Object> data = new HashMap<>();
+            data.put("totalCount", 0);
+            return Result.success(data, "附件删除成功");
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
     }
 
     /**
@@ -177,8 +237,8 @@ public class StudentController {
 
         // 校验当前学生是否为该提交的所属人
         try {
-            HomeworkSubmit mySubmit = homeworkService.getMySubmission(submit.getHomeworkId(), userId);
-            if (mySubmit == null || !mySubmit.getId().equals(submissionId)) {
+            Map<String, Object> mySubmit = homeworkService.getMySubmission(submit.getHomeworkId(), userId);
+            if (mySubmit == null || !submissionId.equals(((Number) mySubmit.get("id")).longValue())) {
                 return Result.error(403, "You can only view suggestions for your own submission");
             }
         } catch (RuntimeException e) {

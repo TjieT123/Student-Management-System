@@ -68,6 +68,21 @@ public class AnnouncementService {
     }
 
     /**
+     * 选择性更新公告
+     */
+    public Announcement updateAnnouncementSelective(Long id, String title, String content, String publisherName) {
+        Announcement announcement = announcementMapper.getAnnouncementById(id);
+        if (announcement == null) return null;
+
+        if (title != null) announcement.setTitle(title);
+        if (content != null) announcement.setContent(content);
+        if (publisherName != null) announcement.setPublisherName(publisherName);
+
+        announcementMapper.updateAnnouncementSelective(announcement);
+        return announcementMapper.getAnnouncementById(id);
+    }
+
+    /**
      * 删除公告
      */
     public int deleteAnnouncement(Long id) {
