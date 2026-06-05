@@ -8,7 +8,10 @@ import cn.edu.sdu.sms.server.models.Homework;
 import cn.edu.sdu.sms.server.models.HomeworkSubmit;
 import cn.edu.sdu.sms.server.service.AiGradingService;
 import cn.edu.sdu.sms.server.service.AttachmentService;
+import cn.edu.sdu.sms.server.service.CourseScoreService;
+import cn.edu.sdu.sms.server.service.CourseService;
 import cn.edu.sdu.sms.server.service.HomeworkService;
+import cn.edu.sdu.sms.server.service.SemesterConfigService;
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +42,18 @@ public class TeacherController {
 
     @Autowired
     private AttachmentService attachmentService;
+
+    @Autowired
+    private CourseScoreService courseScoreService;
+
+    @Autowired
+    private CourseService courseService;
+
+    @Autowired
+    private SemesterConfigService semesterConfigService;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.CourseMapper courseMapper;
 
     /**
      * 发布新作业
@@ -295,6 +310,36 @@ public class TeacherController {
         } catch (RuntimeException e) {
             return Result.error(400, e.getMessage());
         }
+    }
+
+    // -- Scores (Feature 4) --
+    @PutMapping("/course/{courseId}/score")
+    public ResponseEntity<Result> saveScores(@PathVariable Long courseId, @RequestBody List<Map<String, Object>> scores,
+                                              HttpServletRequest request) {
+        String token = getTokenFromRequest(request);
+        if (token == null) return Result.error(401, "Unauthorized");
+        courseScoreService.batchUpsertScores(courseId, scores);
+        return Result.success(null, "保存成功");
+    }
+
+    @GetMapping("/course/{courseId}/scores")
+    public ResponseEntity<Result> getCourseScores(@PathVariable Long courseId, HttpServletRequest request) {
+        String token = getTokenFromRequest(request);
+        if (token == null) return Result.error(401, "Unauthorized");
+        return Result.success(courseScoreService.getCourseScores(courseId), "ok");
+    }
+
+    // -- Home summary (Feature 7) --
+    @GetMapping("/home-summary")
+    public ResponseEntity<Result> getHomeSummary(HttpServletRequest request) {
+        String token = getTokenFromRequest(request);
+        if (token == null) return Result.error(401, "Unauthorized");
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+        Map<String, Object> result = new HashMap<>();
+        result.put("courseCount", courseMapper.countTeacherCourses(userId.toString()));
+        result.put("currentWeek", semesterConfigService.calculateCurrentWeek());
+        result.put("schedule", courseService.getTeacherSchedule(userId.toString(), semesterConfigService.calculateCurrentWeek()));
+        return Result.success(result, "ok");
     }
 
     /**

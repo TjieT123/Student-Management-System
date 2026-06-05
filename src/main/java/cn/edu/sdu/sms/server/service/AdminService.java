@@ -167,6 +167,19 @@ public class AdminService {
                 if (major != null) student.setMajor(major);
                 if (gender != null) student.setGender(gender);
                 if (sClassObj != null) student.setSClass(Integer.parseInt(sClassObj.toString().trim()));
+                // 扩展字段
+                if (request.containsKey("birthDate") && request.get("birthDate") != null && !request.get("birthDate").toString().isEmpty()) {
+                    try { student.setBirthDate(java.sql.Date.valueOf((String) request.get("birthDate"))); } catch (Exception ignored) {}
+                }
+                if (request.containsKey("enrollmentYear") && request.get("enrollmentYear") != null)
+                    student.setEnrollmentYear(Integer.parseInt(request.get("enrollmentYear").toString().trim()));
+                if (request.containsKey("idCard")) student.setIdCard((String) request.get("idCard"));
+                if (request.containsKey("nativePlace")) student.setNativePlace((String) request.get("nativePlace"));
+                if (request.containsKey("politicalStatus")) student.setPoliticalStatus((String) request.get("politicalStatus"));
+                if (request.containsKey("address")) student.setAddress((String) request.get("address"));
+                if (request.containsKey("contactName")) student.setContactName((String) request.get("contactName"));
+                if (request.containsKey("contactPhone")) student.setContactPhone((String) request.get("contactPhone"));
+                if (request.containsKey("socialRelations")) student.setSocialRelations((String) request.get("socialRelations"));
                 studentMapper.updateStudent(student);
             }
         }
@@ -376,18 +389,24 @@ public class AdminService {
             return null;
         }
 
-        if (name != null) {
-            student.setName(name);
+        if (name != null) student.setName(name);
+        if (major != null) student.setMajor(major);
+        if (gender != null) student.setGender(gender);
+        if (sClassObj != null) student.setSClass(Integer.parseInt(sClassObj.toString().trim()));
+
+        // 扩展字段
+        if (request.containsKey("birthDate") && request.get("birthDate") != null) {
+            try { student.setBirthDate(java.text.SimpleDateFormat.getDateInstance().parse((String) request.get("birthDate"))); } catch (Exception ignored) {}
         }
-        if (major != null) {
-            student.setMajor(major);
-        }
-        if (gender != null) {
-            student.setGender(gender);
-        }
-        if (sClassObj != null) {
-            student.setSClass(Integer.parseInt(sClassObj.toString().trim()));
-        }
+        if (request.containsKey("enrollmentYear") && request.get("enrollmentYear") != null)
+            student.setEnrollmentYear(Integer.parseInt(request.get("enrollmentYear").toString().trim()));
+        if (request.containsKey("idCard")) student.setIdCard((String) request.get("idCard"));
+        if (request.containsKey("nativePlace")) student.setNativePlace((String) request.get("nativePlace"));
+        if (request.containsKey("politicalStatus")) student.setPoliticalStatus((String) request.get("politicalStatus"));
+        if (request.containsKey("address")) student.setAddress((String) request.get("address"));
+        if (request.containsKey("contactName")) student.setContactName((String) request.get("contactName"));
+        if (request.containsKey("contactPhone")) student.setContactPhone((String) request.get("contactPhone"));
+        if (request.containsKey("socialRelations")) student.setSocialRelations((String) request.get("socialRelations"));
 
         studentMapper.updateStudent(student);
         return student;

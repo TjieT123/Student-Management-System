@@ -1,0 +1,49 @@
+package cn.edu.sdu.sms.server.service;
+
+import cn.edu.sdu.sms.server.mapper.InnovationPracticeMapper;
+import cn.edu.sdu.sms.server.models.InnovationPractice;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
+import java.util.*;
+
+@Service
+public class InnovationPracticeService {
+    @Autowired private InnovationPracticeMapper mapper;
+    @Autowired private cn.edu.sdu.sms.server.mapper.UserMapper userMapper;
+    @Autowired(required = false) private NotificationService notificationService;
+
+    public InnovationPractice submit(InnovationPractice p) {
+        p.setStatus("PENDING");
+        p.setCreateTime(LocalDateTime.now());
+        mapper.insert(p);
+        return p;
+    }
+    public Map<String, Object> getMyPractices(String sid, int page, int pageSize) {
+        int offset = (page-1)*pageSize;
+        Map<String, Object> r = new HashMap<>();
+        r.put("total", mapper.countBySid(sid));
+        r.put("page", page); r.put("pageSize", pageSize);
+        r.put("list", mapper.getBySid(sid, offset, pageSize));
+        return r;
+    }
+    public Map<String, Object> getPending(int page, int pageSize) {
+        int offset = (page-1)*pageSize;
+        Map<String, Object> r = new HashMap<>();
+        r.put("total", mapper.countPending());
+        r.put("page", page); r.put("pageSize", pageSize);
+        r.put("list", mapper.getPending(offset, pageSize));
+        return r;
+    }
+    public void approve(Long id, String status, Long reviewerId, String comment) {
+        mapper.approve(id, status, reviewerId, comment);
+        InnovationPractice p = mapper.getById(id);
+        if (notificationService != null && p != null) {
+            cn.edu.sdu.sms.server.models.User user = userMapper.getUserBySchId(p.getSid());
+            if (user != null)
+                notificationService.createNotification(user.getId(), "实践记录已" + (status.equals("APPROVED") ? "通过" : "驳回"),
+                    "您的创新实践记录《" + p.getTitle() + "》已" + (status.equals("APPROVED") ? "通过审核" : "被驳回") + "。");
+        }
+    }
+    public void delete(Long id) { mapper.delete(id); }
+}

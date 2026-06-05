@@ -50,13 +50,6 @@ public interface CourseMapper {
             "</script>")
     int countCoursesFiltered(@Param("id") Long id, @Param("courseName") String courseName, @Param("teacherId") String teacherId);
 
-    @Insert("insert into course(course_name, id, detail, address, teacher_id) " +
-            "values(#{courseName}, #{id}, #{detail}, #{address}, #{teacherId})")
-    int insertCourse(Course course);
-
-    @Update("update course set course_name = #{courseName}, detail = #{detail}, address = #{address}, teacher_id = #{teacherId} where id = #{id}")
-    int updateCourse(Course course);
-
     @Delete("delete from course where id = #{id}")
     int deleteCourse(Long id);
 
@@ -96,5 +89,36 @@ public interface CourseMapper {
             "from student_course sc join student s on sc.sid = s.sid " +
             "where sc.course_id = #{courseId} order by s.sid")
     List<Map<String, Object>> getEnrolledStudents(@Param("courseId") Long courseId);
+
+    // -- Schedule queries (Feature 2) --
+    @Select("select c.id, c.course_name as courseName, c.type, c.start_week as startWeek, c.end_week as endWeek, c.schedule " +
+            "from student_course sc join course c on sc.course_id = c.id " +
+            "where sc.sid = #{sid} and c.start_week <= #{week} and c.end_week >= #{week}")
+    List<Map<String, Object>> getStudentSchedule(@Param("sid") String sid, @Param("week") int week);
+
+    @Select("select c.id, c.course_name as courseName, c.start_week as startWeek, c.end_week as endWeek, c.schedule " +
+            "from course c where c.teacher_id = #{teacherId} and c.start_week <= #{week} and c.end_week >= #{week}")
+    List<Map<String, Object>> getTeacherSchedule(@Param("teacherId") String teacherId, @Param("week") int week);
+
+    @Select("select c.id, c.course_name as courseName, c.type, c.start_week as startWeek, " +
+            "c.end_week as endWeek, c.schedule from student_course sc join course c on sc.course_id = c.id " +
+            "where sc.sid = #{sid}")
+    List<Map<String, Object>> getStudentEnrolledCoursesWithSchedule(@Param("sid") String sid);
+
+    // -- Materials queries (Feature 3) --
+    @Select("select materials from course where id = #{id}")
+    String getMaterials(@Param("id") Long id);
+
+    @Update("update course set materials = #{materials} where id = #{id}")
+    int updateMaterials(@Param("id") Long id, @Param("materials") String materials);
+
+    // -- Updated insert/update with new fields --
+    @Insert("insert into course(id, course_name, detail, address, teacher_id, type, start_week, end_week, schedule, materials, credits) " +
+            "values(#{id}, #{courseName}, #{detail}, #{address}, #{teacherId}, #{type}, #{startWeek}, #{endWeek}, #{schedule}, #{materials}, #{credits})")
+    int insertCourse(Course course);
+
+    @Update("update course set course_name = #{courseName}, detail = #{detail}, address = #{address}, teacher_id = #{teacherId}, " +
+            "type = #{type}, start_week = #{startWeek}, end_week = #{endWeek}, schedule = #{schedule}, materials = #{materials}, credits = #{credits} where id = #{id}")
+    int updateCourse(Course course);
 }
 

@@ -168,18 +168,12 @@ public class CourseService {
     }
 
     /**
-     * 选课
+     * 选课（带冲突检测）
      */
-    public void enrollCourse(Long userId, Long courseId) {
+    public void enrollCourseByUserId(Long userId, Long courseId) {
         User user = userMapper.getUserById(userId);
-        if (user == null) {
-            throw new RuntimeException("User not found");
-        }
-        String sid = user.getSchId();
-        if (courseMapper.countStudentCourse(sid, courseId) > 0) {
-            throw new RuntimeException("Already enrolled in this course");
-        }
-        courseMapper.insertStudentCourse(sid, courseId);
+        if (user == null) throw new RuntimeException("User not found");
+        enrollCourse(user.getSchId(), courseId);
     }
 
     /**
@@ -197,13 +191,99 @@ public class CourseService {
         courseMapper.deleteStudentCourse(sid, courseId);
     }
 
+    // -- Schedule methods (Feature 2) --
+    public List<Map<String, Object>> getStudentSchedule(String sid, int week) {
+        return courseMapper.getStudentSchedule(sid, week);
+    }
+
+    public List<Map<String, Object>> getTeacherSchedule(String teacherId, int week) {
+        return courseMapper.getTeacherSchedule(teacherId, week);
+    }
+
+    // -- Materials methods (Feature 3) --
+    public List<cn.edu.sdu.sms.server.models.AttachmentItem> getMaterials(Long courseId) {
+        String json = courseMapper.getMaterials(courseId);
+        return new AttachmentService().parseAttachments(json);
+    }
+
+    public List<cn.edu.sdu.sms.server.models.AttachmentItem> addMaterial(Long courseId, cn.edu.sdu.sms.server.models.AttachmentItem item, Long userId) {
+        Course course = courseMapper.getCourseById(courseId);
+        if (course == null) throw new RuntimeException("Course not found");
+        String current = courseMapper.getMaterials(courseId);
+        AttachmentService as = new AttachmentService();
+        String newJson = as.addAttachment(current, item);
+        courseMapper.updateMaterials(courseId, newJson);
+        return as.parseAttachments(newJson);
+    }
+
+    public void removeMaterial(Long courseId, int index, Long userId) {
+        Course course = courseMapper.getCourseById(courseId);
+        if (course == null) throw new RuntimeException("Course not found");
+        String current = courseMapper.getMaterials(courseId);
+        AttachmentService as = new AttachmentService();
+        List<cn.edu.sdu.sms.server.models.AttachmentItem> list = as.parseAttachments(current);
+        if (index < 0 || index >= list.size()) throw new RuntimeException("Invalid index");
+        String newJson = as.removeAttachment(current, index);
+        courseMapper.updateMaterials(courseId, newJson);
+    }
+
+    // -- Conflict detection for enroll (Feature 2) --
+    @org.springframework.transaction.annotation.Transactional
+    public void enrollCourse(String sid, Long courseId) {
+        if (courseMapper.countStudentCourse(sid, courseId) > 0)
+            throw new RuntimeException("Already enrolled in this course");
+
+        Course newCourse = courseMapper.getCourseById(courseId);
+        if (newCourse == null) throw new RuntimeException("Course not found");
+        if (newCourse.getSchedule() == null || newCourse.getSchedule().isEmpty()) {
+            courseMapper.insertStudentCourse(sid, courseId);
+            return;
+        }
+
+        // Conflict detection
+        List<Map<String, Object>> enrolled = courseMapper.getStudentEnrolledCoursesWithSchedule(sid);
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        try {
+            List<Map<String, Object>> newSchedule = mapper.readValue(newCourse.getSchedule(), List.class);
+            int newStart = newCourse.getStartWeek() != null ? newCourse.getStartWeek() : 1;
+            int newEnd = newCourse.getEndWeek() != null ? newCourse.getEndWeek() : 18;
+
+            for (Map<String, Object> ec : enrolled) {
+                String ecSchedule = (String) ec.get("schedule");
+                if (ecSchedule == null || ecSchedule.isEmpty()) continue;
+                List<Map<String, Object>> ecSlots = mapper.readValue(ecSchedule, List.class);
+                Long ecStartObj = ec.get("startWeek") != null ? ((Number) ec.get("startWeek")).longValue() : 1L;
+                Long ecEndObj = ec.get("endWeek") != null ? ((Number) ec.get("endWeek")).longValue() : 18L;
+                int ecStart = ecStartObj.intValue();
+                int ecEnd = ecEndObj.intValue();
+
+                if (newStart > ecEnd || newEnd < ecStart) continue; // no week overlap
+
+                for (Map<String, Object> ns : newSchedule) {
+                    int nDay = ((Number) ns.get("dayOfWeek")).intValue();
+                    int nSlot = ((Number) ns.get("slot")).intValue();
+                    for (Map<String, Object> es : ecSlots) {
+                        int eDay = ((Number) es.get("dayOfWeek")).intValue();
+                        int eSlot = ((Number) es.get("slot")).intValue();
+                        if (nDay == eDay && nSlot == eSlot) {
+                            String conflictCourse = (String) ec.get("courseName");
+                            throw new RuntimeException("该课程与《" + conflictCourse + "》（周" + getDayName(nDay) + " 第" + nSlot + "节）时间冲突");
+                        }
+                    }
+                }
+            }
+        } catch (RuntimeException e) { throw e; }
+        catch (Exception e) { /* parse error, skip conflict check */ }
+
+        courseMapper.insertStudentCourse(sid, courseId);
+    }
+
     /**
      * 固定9门课程
      */
     private List<Course> getPredefinedCourses() {
         List<Course> courses = new ArrayList<>();
         String[] courseNames = {"语文", "数学", "英语", "物理", "化学", "生物", "政治", "历史", "地理"};
-
         for (int i = 0; i < courseNames.length; i++) {
             Course course = new Course();
             course.setId((long) (i + 1));
@@ -212,4 +292,6 @@ public class CourseService {
         }
         return courses;
     }
+
+    private static String getDayName(int d) { return new String[]{"一","二","三","四","五","六","日"}[d-1]; }
 }

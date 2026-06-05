@@ -5,7 +5,8 @@ import cn.edu.sdu.sms.server.models.Course;
 import cn.edu.sdu.sms.server.models.Student;
 import cn.edu.sdu.sms.server.models.Teacher;
 import cn.edu.sdu.sms.server.models.User;
-import cn.edu.sdu.sms.server.service.AdminService;
+import cn.edu.sdu.sms.server.models.*;
+import cn.edu.sdu.sms.server.service.*;
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,21 @@ public class AdminController {
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    private HonorService honorService;
+
+    @Autowired
+    private InnovationPracticeService practiceService;
+
+    @Autowired
+    private LeaveService leaveService;
+
+    @Autowired
+    private ActivityService activityService;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.UserMapper userMapper;
 
     /**
      * 校验请求是否为管理员身份，返回 userId 字符串；非管理员返回 null。
@@ -404,6 +420,95 @@ public class AdminController {
 
         Map<String, Object> result = adminService.addStudentUser(request);
         return Result.success(result, "Student user added successfully");
+    }
+
+    // -- Honor management (Feature 9) --
+    @GetMapping("/honor/list")
+    public ResponseEntity<Result> getHonorList(@RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize, @RequestParam(required = false) String sid, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        return Result.success(honorService.getHonorList(sid, page, pageSize), "ok");
+    }
+    @PostMapping("/honor/add")
+    public ResponseEntity<Result> addHonor(@RequestBody Honor honor, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        return Result.success(honorService.addHonor(honor), "添加成功");
+    }
+    @PostMapping("/honor/update")
+    public ResponseEntity<Result> updateHonor(@RequestBody Honor honor, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        return Result.success(honorService.updateHonor(honor), "修改成功");
+    }
+    @PostMapping("/honor/delete/{id}")
+    public ResponseEntity<Result> deleteHonor(@PathVariable Long id, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        honorService.deleteHonor(id);
+        return Result.success(null, "删除成功");
+    }
+
+    // -- Innovation practice management (Feature 10) --
+    @GetMapping("/innovation-practice/pending")
+    public ResponseEntity<Result> getPendingPractices(@RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        return Result.success(practiceService.getPending(page, pageSize), "ok");
+    }
+    @PostMapping("/innovation-practice/approve")
+    public ResponseEntity<Result> approvePractice(@RequestBody Map<String, Object> body, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        Long id = Long.parseLong(body.get("id").toString());
+        String status = (String) body.get("status");
+        String comment = (String) body.get("comment");
+        practiceService.approve(id, status, Long.parseLong(requireAdmin(req)), comment);
+        return Result.success(null, "操作成功");
+    }
+    @PostMapping("/innovation-practice/delete/{id}")
+    public ResponseEntity<Result> deletePractice(@PathVariable Long id, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        practiceService.delete(id);
+        return Result.success(null, "删除成功");
+    }
+
+    // -- Leave management (Feature 11) --
+    @GetMapping("/leave/pending")
+    public ResponseEntity<Result> getPendingLeaves(@RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int pageSize, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        return Result.success(leaveService.getPending(page, pageSize), "ok");
+    }
+    @PostMapping("/leave/approve")
+    public ResponseEntity<Result> approveLeave(@RequestBody Map<String, Object> body, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        Long id = Long.parseLong(body.get("id").toString());
+        String status = (String) body.get("status");
+        String comment = (String) body.get("comment");
+        leaveService.approve(id, status, Long.parseLong(requireAdmin(req)), comment);
+        return Result.success(null, "操作成功");
+    }
+
+    // -- Activity management (Feature 12) --
+    @GetMapping("/activity/list")
+    public ResponseEntity<Result> getActivityList(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        return Result.success(activityService.getAllWithCount(page, pageSize), "ok");
+    }
+    @PostMapping("/activity/publish")
+    public ResponseEntity<Result> publishActivity(@RequestBody Activity activity, HttpServletRequest req) {
+        String adminId = requireAdmin(req);
+        if (adminId == null) return Result.error(401, "Admin authentication required");
+        activity.setSid(adminId);
+        return Result.success(activityService.create(activity), "发布成功");
+    }
+    @PostMapping("/activity/update")
+    public ResponseEntity<Result> updateActivity(@RequestBody Activity activity, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        return Result.success(activityService.update(activity), "更新成功");
+    }
+    @PostMapping("/activity/delete/{id}")
+    public ResponseEntity<Result> deleteActivity(@PathVariable Long id, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        activityService.delete(id);
+        return Result.success(null, "删除成功");
     }
 
     /**

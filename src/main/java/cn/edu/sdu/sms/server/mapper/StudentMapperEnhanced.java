@@ -34,10 +34,27 @@ public interface StudentMapperEnhanced {
             "</script>")
     int countStudents(@Param("sid") String sid, @Param("name") String name);
 
-    @Insert("insert into student(sid, name, major, gender, s_class) values(#{sid}, #{name}, #{major}, #{gender}, #{sClass})")
+    @Insert("insert into student(sid, name, major, gender, s_class, birth_date, enrollment_year, id_card, native_place, political_status, address, contact_name, contact_phone, social_relations) " +
+            "values(#{sid}, #{name}, #{major}, #{gender}, #{sClass}, #{birthDate}, #{enrollmentYear}, #{idCard}, #{nativePlace}, #{politicalStatus}, #{address}, #{contactName}, #{contactPhone}, #{socialRelations})")
     int insertStudent(Student student);
 
-    @Update("update student set name = #{name}, major = #{major}, gender = #{gender}, s_class = #{sClass} where sid = #{sid}")
+    @Update("<script>" +
+            "update student <set>" +
+            "<if test='name != null'>name = #{name}, </if>" +
+            "<if test='major != null'>major = #{major}, </if>" +
+            "<if test='gender != null'>gender = #{gender}, </if>" +
+            "<if test='sClass != null'>s_class = #{sClass}, </if>" +
+            "<if test='birthDate != null'>birth_date = #{birthDate}, </if>" +
+            "<if test='enrollmentYear != null'>enrollment_year = #{enrollmentYear}, </if>" +
+            "<if test='idCard != null'>id_card = #{idCard}, </if>" +
+            "<if test='nativePlace != null'>native_place = #{nativePlace}, </if>" +
+            "<if test='politicalStatus != null'>political_status = #{politicalStatus}, </if>" +
+            "<if test='address != null'>address = #{address}, </if>" +
+            "<if test='contactName != null'>contact_name = #{contactName}, </if>" +
+            "<if test='contactPhone != null'>contact_phone = #{contactPhone}, </if>" +
+            "<if test='socialRelations != null'>social_relations = #{socialRelations}, </if>" +
+            "</set> where sid = #{sid}" +
+            "</script>")
     int updateStudent(Student student);
 
     @Delete("delete from student where sid = #{sid}")

@@ -6,7 +6,11 @@ import cn.edu.sdu.sms.server.models.Homework;
 import cn.edu.sdu.sms.server.models.HomeworkSubmit;
 import cn.edu.sdu.sms.server.service.AiGradingService;
 import cn.edu.sdu.sms.server.service.AttachmentService;
+import cn.edu.sdu.sms.server.service.CourseScoreService;
+import cn.edu.sdu.sms.server.service.CourseService;
 import cn.edu.sdu.sms.server.service.HomeworkService;
+import cn.edu.sdu.sms.server.service.NotificationService;
+import cn.edu.sdu.sms.server.service.SemesterConfigService;
 import cn.edu.sdu.sms.server.service.StudentService;
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +44,45 @@ public class StudentController {
 
     @Autowired
     private AttachmentService attachmentService;
+
+    @Autowired
+    private CourseScoreService courseScoreService;
+
+    @Autowired
+    private CourseService courseService;
+
+    @Autowired
+    private SemesterConfigService semesterConfigService;
+
+    @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.UserMapper userMapper;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.CourseMapper courseMapper;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.AnnouncementMapper announcementMapper;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.HonorMapper honorMapper;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.InnovationPracticeMapper practiceMapper;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.service.HonorService honorService;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.service.InnovationPracticeService practiceService;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.service.LeaveService leaveService;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.service.ActivityService activityService;
 
     /**
      * 分页获取所有学生信息
@@ -261,6 +305,156 @@ public class StudentController {
         Map<String, String> data = new HashMap<>();
         data.put("suggestion", suggestion);
         return Result.success(data, "ok");
+    }
+
+    // -- Profile (Feature 1) --
+    @GetMapping("/api/student/profile")
+    public ResponseEntity<Result> getProfile(HttpServletRequest request) {
+        String token = getTokenFromRequest(request);
+        if (token == null) return Result.error(401, "Unauthorized");
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+        cn.edu.sdu.sms.server.models.User user = userMapper.getUserById(userId);
+        if (user == null) return Result.error(404, "User not found");
+        cn.edu.sdu.sms.server.models.Student student = studentService.getStudentBySid(user.getSchId());
+        return Result.success(student, "ok");
+    }
+
+    // -- Scores & GPA (Feature 4) --
+    @GetMapping("/api/student/scores")
+    public ResponseEntity<Result> getMyScores(HttpServletRequest request) {
+        String token = getTokenFromRequest(request);
+        if (token == null) return Result.error(401, "Unauthorized");
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+        cn.edu.sdu.sms.server.models.User user = userMapper.getUserById(userId);
+        if (user == null) return Result.error(404, "User not found");
+        return Result.success(courseScoreService.getStudentScores(user.getSchId()), "ok");
+    }
+
+    @GetMapping("/api/student/gpa")
+    public ResponseEntity<Result> getMyGPA(HttpServletRequest request) {
+        String token = getTokenFromRequest(request);
+        if (token == null) return Result.error(401, "Unauthorized");
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+        cn.edu.sdu.sms.server.models.User user = userMapper.getUserById(userId);
+        if (user == null) return Result.error(404, "User not found");
+        return Result.success(courseScoreService.calculateGPA(user.getSchId()), "ok");
+    }
+
+    // -- Home summary & profile-summary & resume (Features 5, 6) --
+    @GetMapping("/api/student/home-summary")
+    public ResponseEntity<Result> getHomeSummary(HttpServletRequest request) {
+        String token = getTokenFromRequest(request);
+        if (token == null) return Result.error(401, "Unauthorized");
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+        cn.edu.sdu.sms.server.models.User user = userMapper.getUserById(userId);
+        if (user == null) return Result.error(404, "User not found");
+        String sid = user.getSchId();
+        Map<String, Object> result = new HashMap<>();
+        result.put("courseCount", courseMapper.countStudentCoursesBySid(sid));
+        result.put("announcements", announcementMapper.getAllAnnouncements().subList(0, Math.min(2, 0)));
+        result.put("currentWeek", semesterConfigService.calculateCurrentWeek());
+        result.put("schedule", courseService.getStudentSchedule(sid, semesterConfigService.calculateCurrentWeek()));
+        return Result.success(result, "ok");
+    }
+
+    @GetMapping("/api/student/profile-summary")
+    public ResponseEntity<Result> getProfileSummary(HttpServletRequest request) {
+        String token = getTokenFromRequest(request);
+        if (token == null) return Result.error(401, "Unauthorized");
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+        cn.edu.sdu.sms.server.models.User user = userMapper.getUserById(userId);
+        if (user == null) return Result.error(404, "User not found");
+        String sid = user.getSchId();
+        Map<String, Object> result = new HashMap<>();
+        result.put("gpa", courseScoreService.calculateGPA(sid));
+        result.put("courseCount", courseMapper.countStudentCoursesBySid(sid));
+        result.put("homeworkStats", new HashMap<>());
+        return Result.success(result, "ok");
+    }
+
+    @GetMapping("/api/student/resume")
+    public ResponseEntity<Result> getResume(HttpServletRequest request) {
+        String token = getTokenFromRequest(request);
+        if (token == null) return Result.error(401, "Unauthorized");
+        Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
+        cn.edu.sdu.sms.server.models.User user = userMapper.getUserById(userId);
+        if (user == null) return Result.error(404, "User not found");
+        String sid = user.getSchId();
+        Map<String, Object> result = new HashMap<>();
+        result.put("studentInfo", studentService.getStudentBySid(sid));
+        result.put("gpa", courseScoreService.calculateGPA(sid));
+        result.put("scores", courseScoreService.getStudentScores(sid));
+        result.put("honors", honorMapper.getBySid(sid));
+        result.put("practices", practiceMapper.getBySid(sid, 0, 100));
+        return Result.success(result, "ok");
+    }
+
+    // -- Honor (Feature 9) --
+    @GetMapping("/api/student/honor/list")
+    public ResponseEntity<Result> getMyHonors(HttpServletRequest req) {
+        String token = getTokenFromRequest(req);
+        if (token == null) return Result.error(401, "Unauthorized");
+        String sid = userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId();
+        return Result.success(honorService.getBySid(sid), "ok");
+    }
+
+    // -- Innovation Practice (Feature 10) --
+    @PostMapping("/api/student/innovation-practice/submit")
+    public ResponseEntity<Result> submitPractice(@RequestBody cn.edu.sdu.sms.server.models.InnovationPractice practice, HttpServletRequest req) {
+        String token = getTokenFromRequest(req);
+        if (token == null) return Result.error(401, "Unauthorized");
+        String sid = userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId();
+        practice.setSid(sid);
+        return Result.success(practiceService.submit(practice), "提交成功");
+    }
+    @GetMapping("/api/student/innovation-practice/my")
+    public ResponseEntity<Result> getMyPractices(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize, HttpServletRequest req) {
+        String token = getTokenFromRequest(req);
+        if (token == null) return Result.error(401, "Unauthorized");
+        String sid = userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId();
+        return Result.success(practiceService.getMyPractices(sid, page, pageSize), "ok");
+    }
+
+    // -- Leave (Feature 11) --
+    @PostMapping("/api/student/leave/apply")
+    public ResponseEntity<Result> applyLeave(@RequestBody cn.edu.sdu.sms.server.models.LeaveRequest leave, HttpServletRequest req) {
+        String token = getTokenFromRequest(req);
+        if (token == null) return Result.error(401, "Unauthorized");
+        leave.setSid(userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId());
+        if (leave.getStartDate().isAfter(leave.getEndDate())) return Result.error(400, "开始日期不能晚于结束日期");
+        return Result.success(leaveService.apply(leave), "提交成功");
+    }
+    @GetMapping("/api/student/leave/my")
+    public ResponseEntity<Result> getMyLeaves(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize, HttpServletRequest req) {
+        String token = getTokenFromRequest(req);
+        if (token == null) return Result.error(401, "Unauthorized");
+        String sid = userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId();
+        return Result.success(leaveService.getMyLeaves(sid, page, pageSize), "ok");
+    }
+
+    // -- Activity (Feature 12) - Student view & register --
+    @GetMapping("/api/student/activity/list")
+    public ResponseEntity<Result> getAvailableActivities(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize, HttpServletRequest req) {
+        String token = getTokenFromRequest(req);
+        if (token == null) return Result.error(401, "Unauthorized");
+        String sid = userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId();
+        return Result.success(activityService.getAvailableForStudent(sid, page, pageSize), "ok");
+    }
+    @PostMapping("/api/student/activity/register/{activityId}")
+    public ResponseEntity<Result> registerActivity(@PathVariable Long activityId, HttpServletRequest req) {
+        String token = getTokenFromRequest(req);
+        if (token == null) return Result.error(401, "Unauthorized");
+        String sid = userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId();
+        try { activityService.register(activityId, sid); return Result.success(null, "报名成功"); }
+        catch (RuntimeException e) { return Result.error(400, e.getMessage()); }
+    }
+    @PostMapping("/api/student/activity/cancel/{activityId}")
+    public ResponseEntity<Result> cancelRegistration(@PathVariable Long activityId, HttpServletRequest req) {
+        String token = getTokenFromRequest(req);
+        if (token == null) return Result.error(401, "Unauthorized");
+        String sid = userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId();
+        activityService.cancelRegistration(activityId, sid);
+        return Result.success(null, "取消成功");
     }
 
     /**
