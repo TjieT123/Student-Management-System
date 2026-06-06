@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Update;
 import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -113,8 +114,9 @@ public interface CourseMapper {
     int updateMaterials(@Param("id") Long id, @Param("materials") String materials);
 
     // -- Updated insert/update with new fields --
-    @Insert("insert into course(id, course_name, detail, address, teacher_id, type, start_week, end_week, materials, credits) " +
-            "values(#{id}, #{courseName}, #{detail}, #{address}, #{teacherId}, #{type}, #{startWeek}, #{endWeek}, #{materials}, #{credits})")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    @Insert("insert into course(course_name, detail, address, teacher_id, type, start_week, end_week, materials, credits) " +
+            "values(#{courseName}, #{detail}, #{address}, #{teacherId}, #{type}, #{startWeek}, #{endWeek}, #{materials}, #{credits})")
     int insertCourse(Course course);
 
     @Update("update course set course_name = #{courseName}, detail = #{detail}, address = #{address}, teacher_id = #{teacherId}, " +

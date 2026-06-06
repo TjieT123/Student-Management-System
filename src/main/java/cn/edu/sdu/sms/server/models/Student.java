@@ -25,4 +25,5 @@ public class Student {
     private String contactName;
     private String contactPhone;
     private String socialRelations; // JSON
+    private Integer grade; // 年级 (1990-2050)
 }

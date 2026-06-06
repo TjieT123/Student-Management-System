@@ -44,7 +44,8 @@ public interface UserMapper {
             "select u.id, u.username, u.name, u.role, u.phone, u.sch_id, s.major, s.gender, s.s_class as sClass, " +
             "s.birth_date as birthDate, s.enrollment_year as enrollmentYear, s.id_card as idCard, " +
             "s.native_place as nativePlace, s.political_status as politicalStatus, s.address as address, " +
-            "s.contact_name as contactName, s.contact_phone as contactPhone, s.social_relations as socialRelations " +
+            "s.contact_name as contactName, s.contact_phone as contactPhone, s.social_relations as socialRelations, " +
+            "s.grade as grade " +
             "from user u left join student s on u.sch_id = s.sid " +
             "where u.role = 'STUDENT' " +
             "<if test='schId != null and schId != \"\"'>and u.sch_id like concat('%', #{schId}, '%') </if>" +

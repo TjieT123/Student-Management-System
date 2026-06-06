@@ -34,8 +34,8 @@ public interface StudentMapperEnhanced {
             "</script>")
     int countStudents(@Param("sid") String sid, @Param("name") String name);
 
-    @Insert("insert into student(sid, name, major, gender, s_class, birth_date, enrollment_year, id_card, native_place, political_status, address, contact_name, contact_phone, social_relations) " +
-            "values(#{sid}, #{name}, #{major}, #{gender}, #{sClass}, #{birthDate}, #{enrollmentYear}, #{idCard}, #{nativePlace}, #{politicalStatus}, #{address}, #{contactName}, #{contactPhone}, #{socialRelations})")
+    @Insert("insert into student(sid, name, major, gender, s_class, birth_date, enrollment_year, id_card, native_place, political_status, address, contact_name, contact_phone, social_relations, grade) " +
+            "values(#{sid}, #{name}, #{major}, #{gender}, #{sClass}, #{birthDate}, #{enrollmentYear}, #{idCard}, #{nativePlace}, #{politicalStatus}, #{address}, #{contactName}, #{contactPhone}, #{socialRelations}, #{grade})")
     int insertStudent(Student student);
 
     @Update("<script>" +
@@ -53,6 +53,7 @@ public interface StudentMapperEnhanced {
             "<if test='contactName != null'>contact_name = #{contactName}, </if>" +
             "<if test='contactPhone != null'>contact_phone = #{contactPhone}, </if>" +
             "<if test='socialRelations != null'>social_relations = #{socialRelations}, </if>" +
+            "<if test='grade != null'>grade = #{grade}, </if>" +
             "</set> where sid = #{sid}" +
             "</script>")
     int updateStudent(Student student);

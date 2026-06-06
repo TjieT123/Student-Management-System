@@ -17,4 +17,15 @@ public class RegisterRequest {
     private String major;
     private String gender;
     private Integer s_class;
+    private Integer grade;
+    // 学生扩展字段
+    private String idCard;
+    private String birthDate;
+    private Integer enrollmentYear;
+    private String nativePlace;
+    private String politicalStatus;
+    private String address;
+    private String contactName;
+    private String contactPhone;
+    private String socialRelations;
 }

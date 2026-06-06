@@ -86,6 +86,21 @@ public class AuthService {
             if (req.getS_class() != null) {
                 student.setSClass(req.getS_class());
             }
+            if (req.getGrade() != null) {
+                student.setGrade(req.getGrade());
+            }
+            // 扩展字段
+            if (req.getIdCard() != null) student.setIdCard(req.getIdCard());
+            if (req.getBirthDate() != null) {
+                try { student.setBirthDate(java.sql.Date.valueOf(java.time.LocalDate.parse(req.getBirthDate()))); } catch (Exception ignored) {}
+            }
+            if (req.getEnrollmentYear() != null) student.setEnrollmentYear(req.getEnrollmentYear());
+            if (req.getNativePlace() != null) student.setNativePlace(req.getNativePlace());
+            if (req.getPoliticalStatus() != null) student.setPoliticalStatus(req.getPoliticalStatus());
+            if (req.getAddress() != null) student.setAddress(req.getAddress());
+            if (req.getContactName() != null) student.setContactName(req.getContactName());
+            if (req.getContactPhone() != null) student.setContactPhone(req.getContactPhone());
+            if (req.getSocialRelations() != null) student.setSocialRelations(req.getSocialRelations());
             studentMapper.insertStudent(student);
         } else if ("TEACHER".equals(req.getRole())) {
             Teacher teacher = new Teacher();

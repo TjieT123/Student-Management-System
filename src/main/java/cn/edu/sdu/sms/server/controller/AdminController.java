@@ -197,14 +197,6 @@ public class AdminController {
     @PostMapping("/course/add")
     public ResponseEntity<Result> addCourse(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
         if (requireAdmin(httpRequest) == null) return Result.error(401, "Admin authentication required");
-        String courseId = (String) request.get("courseId");
-        if (courseId == null || courseId.trim().isEmpty()) {
-            return Result.error(400, "Course ID is required");
-        }
-
-        if (adminService.getCourseById(Long.valueOf(courseId)) != null) {
-            return Result.error(409, "Course ID already exists");
-        }
 
         Course course = adminService.addCourse(request);
         if (course == null) {
