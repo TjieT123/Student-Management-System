@@ -16,7 +16,9 @@ public interface CourseScoreMapper {
     int upsertScore(@Param("courseId") Long courseId, @Param("sid") String sid,
                     @Param("finalScore") Double finalScore, @Param("gradePoint") Double gradePoint);
 
-    @Select("select cs.*, c.course_name as courseName, c.type as courseType, c.credits as credits " +
+    @Select("select cs.id, cs.course_id as courseId, cs.sid, cs.final_score as finalScore, " +
+            "cs.grade_point as gradePoint, cs.update_time as updateTime, " +
+            "c.course_name as courseName, c.type as courseType, c.credits as credits " +
             "from course_score cs join course c on cs.course_id = c.id where cs.sid = #{sid}")
     List<Map<String, Object>> getStudentAllScores(@Param("sid") String sid);
 

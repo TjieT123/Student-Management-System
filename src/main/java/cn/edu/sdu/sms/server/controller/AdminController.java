@@ -40,6 +40,9 @@ public class AdminController {
     private LeaveService leaveService;
 
     @Autowired
+    private cn.edu.sdu.sms.server.mapper.LeaveRequestMapper leaveMapper;
+
+    @Autowired
     private ActivityService activityService;
 
     @Autowired
@@ -425,14 +428,31 @@ public class AdminController {
     // -- Honor management (Feature 9) --
     @GetMapping("/honor/list")
     public ResponseEntity<Result> getHonorList(@RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize, @RequestParam(required = false) String sid, HttpServletRequest req) {
+            @RequestParam(defaultValue = "10") int pageSize, @RequestParam(required = false) String sid,
+            @RequestParam(required = false) String name, HttpServletRequest req) {
         if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
-        return Result.success(honorService.getHonorList(sid, page, pageSize), "ok");
+        Map<String, Object> result = honorService.getHonorList(sid, name, page, pageSize);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> list = (List<Map<String, Object>>) result.get("list");
+        if (list != null) for (Map<String, Object> h : list) {
+            if (h.get("award_date") != null) h.put("award_date", h.get("award_date").toString().substring(0,10));
+        }
+        return Result.success(result, "ok");
+    }
+    @GetMapping("/honor/detail/{id}")
+    public ResponseEntity<Result> getHonorDetail(@PathVariable Long id, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        Map<String, Object> detail = honorService.getByIdWithName(id);
+        if (detail != null && detail.get("award_date") != null) {
+            detail.put("award_date", detail.get("award_date").toString().substring(0,10));
+        }
+        return Result.success(detail, "ok");
     }
     @PostMapping("/honor/add")
     public ResponseEntity<Result> addHonor(@RequestBody Honor honor, HttpServletRequest req) {
         if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
-        return Result.success(honorService.addHonor(honor), "添加成功");
+        try { return Result.success(honorService.addHonor(honor), "添加成功"); }
+        catch (RuntimeException e) { return Result.error(400, e.getMessage()); }
     }
     @PostMapping("/honor/update")
     public ResponseEntity<Result> updateHonor(@RequestBody Honor honor, HttpServletRequest req) {
@@ -449,9 +469,12 @@ public class AdminController {
     // -- Innovation practice management (Feature 10) --
     @GetMapping("/innovation-practice/pending")
     public ResponseEntity<Result> getPendingPractices(@RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize, HttpServletRequest req) {
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String name, @RequestParam(required = false) String title,
+            @RequestParam(required = false) String type, @RequestParam(required = false) String status,
+            HttpServletRequest req) {
         if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
-        return Result.success(practiceService.getPending(page, pageSize), "ok");
+        return Result.success(practiceService.getPending(page, pageSize, name, title, type, status), "ok");
     }
     @PostMapping("/innovation-practice/approve")
     public ResponseEntity<Result> approvePractice(@RequestBody Map<String, Object> body, HttpServletRequest req) {
@@ -461,6 +484,11 @@ public class AdminController {
         String comment = (String) body.get("comment");
         practiceService.approve(id, status, Long.parseLong(requireAdmin(req)), comment);
         return Result.success(null, "操作成功");
+    }
+    @GetMapping("/innovation-practice/detail/{id}")
+    public ResponseEntity<Result> getPracticeDetail(@PathVariable Long id, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        return Result.success(practiceService.getByIdWithName(id), "ok");
     }
     @PostMapping("/innovation-practice/delete/{id}")
     public ResponseEntity<Result> deletePractice(@PathVariable Long id, HttpServletRequest req) {
@@ -472,9 +500,16 @@ public class AdminController {
     // -- Leave management (Feature 11) --
     @GetMapping("/leave/pending")
     public ResponseEntity<Result> getPendingLeaves(@RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize, HttpServletRequest req) {
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String name, @RequestParam(required = false) String type,
+            @RequestParam(required = false) String status, HttpServletRequest req) {
         if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
-        return Result.success(leaveService.getPending(page, pageSize), "ok");
+        return Result.success(leaveService.getPending(page, pageSize, name, type, status), "ok");
+    }
+    @GetMapping("/leave/detail/{id}")
+    public ResponseEntity<Result> getLeaveDetail(@PathVariable Long id, HttpServletRequest req) {
+        if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
+        return Result.success(leaveMapper.getByIdWithName(id), "ok");
     }
     @PostMapping("/leave/approve")
     public ResponseEntity<Result> approveLeave(@RequestBody Map<String, Object> body, HttpServletRequest req) {
@@ -488,9 +523,10 @@ public class AdminController {
 
     // -- Activity management (Feature 12) --
     @GetMapping("/activity/list")
-    public ResponseEntity<Result> getActivityList(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize, HttpServletRequest req) {
+    public ResponseEntity<Result> getActivityList(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String keyword, HttpServletRequest req) {
         if (requireAdmin(req) == null) return Result.error(401, "Admin authentication required");
-        return Result.success(activityService.getAllWithCount(page, pageSize), "ok");
+        return Result.success(activityService.getAllWithCount(page, pageSize, keyword), "ok");
     }
     @PostMapping("/activity/publish")
     public ResponseEntity<Result> publishActivity(@RequestBody Activity activity, HttpServletRequest req) {

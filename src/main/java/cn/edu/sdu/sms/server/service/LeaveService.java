@@ -26,13 +26,15 @@ public class LeaveService {
         r.put("list", mapper.getBySid(sid, offset, pageSize));
         return r;
     }
-    public Map<String, Object> getPending(int page, int pageSize) {
+    public Map<String, Object> getPending(int page, int pageSize, String name, String type, String status) {
         int offset = (page-1)*pageSize;
         Map<String, Object> r = new HashMap<>();
-        r.put("total", mapper.countPending()); r.put("page", page); r.put("pageSize", pageSize);
-        r.put("list", mapper.getPending(offset, pageSize));
+        r.put("total", mapper.countAll(name, type, status)); r.put("page", page); r.put("pageSize", pageSize);
+        r.put("list", mapper.getAllWithName(offset, pageSize, name, type, status));
         return r;
     }
+    public LeaveRequest getById(Long id) { return mapper.getById(id); }
+    public void update(LeaveRequest req) { mapper.update(req); }
     public void approve(Long id, String status, Long reviewerId, String comment) {
         mapper.approve(id, status, reviewerId, comment);
         LeaveRequest lr = mapper.getById(id);

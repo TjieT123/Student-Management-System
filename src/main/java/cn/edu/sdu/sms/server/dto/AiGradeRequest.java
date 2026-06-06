@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AiGradeRequest {
     private Long submitId;
+    private Long homeworkId;
     private String homeworkTitle;
     private String homeworkContent;
 }

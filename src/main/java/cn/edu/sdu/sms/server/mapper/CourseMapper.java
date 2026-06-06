@@ -20,7 +20,7 @@ public interface CourseMapper {
     @Select("select * from course where id = #{id}")
     Course getCourseById(Long id);
 
-    @Select("select c.id, c.course_name as courseName, c.address as address, t.name as teacherName " +
+    @Select("select c.id, c.course_name as courseName, c.type as type, c.credits as credits, c.address as address, t.name as teacherName " +
             "from course c left join teacher t on c.teacher_id = t.sch_id " +
             "order by c.id LIMIT #{limit} OFFSET #{offset}")
     List<Map<String, Object>> getCoursesWithTeacher(@Param("offset") int offset, @Param("limit") int limit);
@@ -29,7 +29,7 @@ public interface CourseMapper {
     int countCourses();
 
     @Select("<script>" +
-            "select c.id, c.course_name as courseName, c.address as address, t.name as teacherName " +
+            "select c.id, c.course_name as courseName, c.type as type, c.credits as credits, c.address as address, t.name as teacherName " +
             "from course c left join teacher t on c.teacher_id = t.sch_id " +
             "<where>" +
             "<if test='id != null'>and c.id = #{id}</if>" +
@@ -65,7 +65,7 @@ public interface CourseMapper {
     @Delete("delete from student_course where sid = #{sid} and course_id = #{courseId}")
     int deleteStudentCourse(@Param("sid") String sid, @Param("courseId") Long courseId);
 
-    @Select("select c.id, c.course_name as courseName, c.address as address, t.name as teacherName " +
+    @Select("select c.id, c.course_name as courseName, c.type as type, c.credits as credits, c.address as address, t.name as teacherName " +
             "from student_course sc " +
             "join course c on sc.course_id = c.id " +
             "left join teacher t on c.teacher_id = t.sch_id " +
@@ -76,7 +76,7 @@ public interface CourseMapper {
     @Select("select count(*) from student_course where sid = #{sid}")
     int countStudentCoursesBySid(@Param("sid") String sid);
 
-    @Select("select c.id, c.course_name as courseName, c.detail as detail, c.address as address, t.name as teacherName " +
+    @Select("select c.id, c.course_name as courseName, c.type as type, c.credits as credits, c.detail as detail, c.address as address, t.name as teacherName " +
             "from course c left join teacher t on c.teacher_id = t.sch_id " +
             "where c.teacher_id = #{teacherId} " +
             "order by c.id LIMIT #{limit} OFFSET #{offset}")
@@ -113,12 +113,12 @@ public interface CourseMapper {
     int updateMaterials(@Param("id") Long id, @Param("materials") String materials);
 
     // -- Updated insert/update with new fields --
-    @Insert("insert into course(id, course_name, detail, address, teacher_id, type, start_week, end_week, schedule, materials, credits) " +
-            "values(#{id}, #{courseName}, #{detail}, #{address}, #{teacherId}, #{type}, #{startWeek}, #{endWeek}, #{schedule}, #{materials}, #{credits})")
+    @Insert("insert into course(id, course_name, detail, address, teacher_id, type, start_week, end_week, materials, credits) " +
+            "values(#{id}, #{courseName}, #{detail}, #{address}, #{teacherId}, #{type}, #{startWeek}, #{endWeek}, #{materials}, #{credits})")
     int insertCourse(Course course);
 
     @Update("update course set course_name = #{courseName}, detail = #{detail}, address = #{address}, teacher_id = #{teacherId}, " +
-            "type = #{type}, start_week = #{startWeek}, end_week = #{endWeek}, schedule = #{schedule}, materials = #{materials}, credits = #{credits} where id = #{id}")
+            "type = #{type}, start_week = #{startWeek}, end_week = #{endWeek}, materials = #{materials}, credits = #{credits} where id = #{id}")
     int updateCourse(Course course);
 }
 

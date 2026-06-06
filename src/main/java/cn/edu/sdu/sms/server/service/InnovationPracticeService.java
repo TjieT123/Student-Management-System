@@ -27,14 +27,17 @@ public class InnovationPracticeService {
         r.put("list", mapper.getBySid(sid, offset, pageSize));
         return r;
     }
-    public Map<String, Object> getPending(int page, int pageSize) {
+    public Map<String, Object> getPending(int page, int pageSize, String name, String title, String type, String status) {
         int offset = (page-1)*pageSize;
         Map<String, Object> r = new HashMap<>();
-        r.put("total", mapper.countPending());
+        r.put("total", mapper.countAll(name, title, type, status));
         r.put("page", page); r.put("pageSize", pageSize);
-        r.put("list", mapper.getPending(offset, pageSize));
+        r.put("list", mapper.getAllWithName(offset, pageSize, name, title, type, status));
         return r;
     }
+    public Map<String, Object> getByIdWithName(Long id) { return mapper.getByIdWithName(id); }
+    public InnovationPractice getById(Long id) { return mapper.getById(id); }
+    public void update(InnovationPractice p) { mapper.update(p); }
     public void approve(Long id, String status, Long reviewerId, String comment) {
         mapper.approve(id, status, reviewerId, comment);
         InnovationPractice p = mapper.getById(id);

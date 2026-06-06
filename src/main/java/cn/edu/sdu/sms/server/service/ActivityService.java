@@ -19,38 +19,47 @@ public class ActivityService {
         return a;
     }
 
-    public Map<String, Object> getAllWithCount(int page, int pageSize) {
+    public Map<String, Object> getAllWithCount(int page, int pageSize, String keyword) {
         int offset = (page-1)*pageSize;
         Map<String, Object> r = new HashMap<>();
-        r.put("total", mapper.countAll()); r.put("page", page); r.put("pageSize", pageSize);
-        r.put("list", mapper.selectAllWithCount(offset, pageSize));
+        r.put("total", mapper.countAll(keyword)); r.put("page", page); r.put("pageSize", pageSize);
+        r.put("list", mapper.selectAllWithCount(offset, pageSize, keyword));
         return r;
     }
 
-    public Map<String, Object> getAvailableForStudent(String sid, int page, int pageSize) {
+    public Map<String, Object> getAvailableForStudent(String sid, int page, int pageSize, String keyword) {
         int offset = (page-1)*pageSize;
-        List<Map<String, Object>> all = mapper.selectAllWithCount(offset, pageSize);
-        // Filter: only show future activities
+        // Fetch more to allow filtering then paginate
+        List<Map<String, Object>> all = mapper.selectAllWithCount(0, 500, null);
         List<Map<String, Object>> available = new ArrayList<>();
         for (Map<String, Object> a : all) {
             Object d = a.get("date");
             if (d != null) {
                 try {
                     LocalDate ld = d instanceof LocalDate ? (LocalDate) d : LocalDate.parse(d.toString());
-                    if (ld.isBefore(LocalDate.now())) continue; // skip past activities
+                    if (ld.isBefore(LocalDate.now())) continue;
                 } catch (Exception ignored) { continue; }
             }
+            if (keyword != null && !keyword.isEmpty()) {
+                String title = (String) a.get("title");
+                String loc = (String) a.get("location");
+                boolean match = (title != null && title.toLowerCase().contains(keyword.toLowerCase()))
+                             || (loc != null && loc.toLowerCase().contains(keyword.toLowerCase()));
+                if (!match) continue;
+            }
             Object rc = a.get("registered_count");
-            int regCount = rc != null ? ((Number) rc).intValue() : 0;
             Object mp = a.get("maxParticipants");
             int max = mp != null ? ((Number) mp).intValue() : 0;
             a.put("isRegistered", mapper.isRegistered(((Number)a.get("id")).longValue(), sid) > 0);
-            a.put("isFull", max > 0 && regCount >= max);
+            a.put("isFull", max > 0 && ((Number)rc).intValue() >= max);
             available.add(a);
         }
+        int total = available.size();
+        int from = Math.min(offset, total);
+        int to = Math.min(from + pageSize, total);
         Map<String, Object> r = new HashMap<>();
-        r.put("total", available.size()); r.put("page", page); r.put("pageSize", pageSize);
-        r.put("list", available);
+        r.put("total", total); r.put("page", page); r.put("pageSize", pageSize);
+        r.put("list", available.subList(from, to));
         return r;
     }
 

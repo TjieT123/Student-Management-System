@@ -10,7 +10,7 @@ import cn.edu.sdu.sms.server.service.CourseScoreService;
 import cn.edu.sdu.sms.server.service.CourseService;
 import cn.edu.sdu.sms.server.service.HomeworkService;
 import cn.edu.sdu.sms.server.service.NotificationService;
-import cn.edu.sdu.sms.server.service.SemesterConfigService;
+
 import cn.edu.sdu.sms.server.service.StudentService;
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,13 +52,13 @@ public class StudentController {
     private CourseService courseService;
 
     @Autowired
-    private SemesterConfigService semesterConfigService;
-
-    @Autowired
     private NotificationService notificationService;
 
     @Autowired
     private cn.edu.sdu.sms.server.mapper.UserMapper userMapper;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.HomeworkMapper homeworkMapper;
 
     @Autowired
     private cn.edu.sdu.sms.server.mapper.CourseMapper courseMapper;
@@ -294,9 +294,11 @@ public class StudentController {
             return Result.error(404, "Homework not found");
         }
 
+        String hwAttJson = homeworkMapper.getAttachments(submit.getHomeworkId());
         String suggestion = aiGradingService.getSuggestion(
                 homework.getTitle(), homework.getContent(),
-                submit.getContent(), submit.getScore(), submit.getComment());
+                submit.getContent(), submit.getScore(), submit.getComment(),
+                hwAttJson, submit.getAttachments());
 
         if (suggestion == null) {
             return Result.error(503, "AI建议服务暂时不可用，请稍后重试");
@@ -352,8 +354,6 @@ public class StudentController {
         Map<String, Object> result = new HashMap<>();
         result.put("courseCount", courseMapper.countStudentCoursesBySid(sid));
         result.put("announcements", announcementMapper.getAllAnnouncements().subList(0, Math.min(2, 0)));
-        result.put("currentWeek", semesterConfigService.calculateCurrentWeek());
-        result.put("schedule", courseService.getStudentSchedule(sid, semesterConfigService.calculateCurrentWeek()));
         return Result.success(result, "ok");
     }
 
@@ -395,7 +395,11 @@ public class StudentController {
         String token = getTokenFromRequest(req);
         if (token == null) return Result.error(401, "Unauthorized");
         String sid = userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId();
-        return Result.success(honorService.getBySid(sid), "ok");
+        List<Map<String, Object>> honors = honorService.getBySidWithName(sid);
+        for (Map<String, Object> h : honors) {
+            if (h.get("award_date") != null) h.put("award_date", h.get("award_date").toString().substring(0,10));
+        }
+        return Result.success(honors, "ok");
     }
 
     // -- Innovation Practice (Feature 10) --
@@ -415,6 +419,34 @@ public class StudentController {
         return Result.success(practiceService.getMyPractices(sid, page, pageSize), "ok");
     }
 
+    @PutMapping("/api/student/innovation-practice/update/{id}")
+    public ResponseEntity<Result> updatePractice(@PathVariable Long id, @RequestBody cn.edu.sdu.sms.server.models.InnovationPractice practice, HttpServletRequest req) {
+        String token = getTokenFromRequest(req);
+        if (token == null) return Result.error(401, "Unauthorized");
+        String sid = userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId();
+        // Verify ownership
+        cn.edu.sdu.sms.server.models.InnovationPractice existing = practiceService.getById(id);
+        if (existing == null) return Result.error(404, "实践记录不存在");
+        if (!existing.getSid().equals(sid)) return Result.error(403, "无权修改");
+        if (!"PENDING".equals(existing.getStatus()) && !"REJECTED".equals(existing.getStatus()))
+            return Result.error(400, "只能编辑待审批或已驳回的记录");
+        practice.setId(id); practice.setSid(sid); practice.setStatus("PENDING");
+        practiceService.update(practice);
+        return Result.success(null, "修改成功，已重新提交审批");
+    }
+
+    @DeleteMapping("/api/student/innovation-practice/delete/{id}")
+    public ResponseEntity<Result> deleteMyPractice(@PathVariable Long id, HttpServletRequest req) {
+        String token = getTokenFromRequest(req);
+        if (token == null) return Result.error(401, "Unauthorized");
+        String sid = userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId();
+        cn.edu.sdu.sms.server.models.InnovationPractice existing = practiceService.getById(id);
+        if (existing == null) return Result.error(404, "实践记录不存在");
+        if (!existing.getSid().equals(sid)) return Result.error(403, "无权删除");
+        practiceService.delete(id);
+        return Result.success(null, "删除成功");
+    }
+
     // -- Leave (Feature 11) --
     @PostMapping("/api/student/leave/apply")
     public ResponseEntity<Result> applyLeave(@RequestBody cn.edu.sdu.sms.server.models.LeaveRequest leave, HttpServletRequest req) {
@@ -424,6 +456,21 @@ public class StudentController {
         if (leave.getStartDate().isAfter(leave.getEndDate())) return Result.error(400, "开始日期不能晚于结束日期");
         return Result.success(leaveService.apply(leave), "提交成功");
     }
+    @PutMapping("/api/student/leave/update/{id}")
+    public ResponseEntity<Result> updateLeave(@PathVariable Long id, @RequestBody cn.edu.sdu.sms.server.models.LeaveRequest leave, HttpServletRequest req) {
+        String token = getTokenFromRequest(req);
+        if (token == null) return Result.error(401, "Unauthorized");
+        String sid = userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId();
+        cn.edu.sdu.sms.server.models.LeaveRequest existing = leaveService.getById(id);
+        if (existing == null) return Result.error(404, "请假记录不存在");
+        if (!existing.getSid().equals(sid)) return Result.error(403, "无权修改");
+        if (!"PENDING".equals(existing.getStatus()) && !"REJECTED".equals(existing.getStatus()))
+            return Result.error(400, "只能编辑待审批或已驳回的记录");
+        leave.setId(id); leave.setSid(sid); leave.setStatus("PENDING");
+        leaveService.update(leave);
+        return Result.success(null, "修改成功，已重新提交审批");
+    }
+
     @GetMapping("/api/student/leave/my")
     public ResponseEntity<Result> getMyLeaves(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize, HttpServletRequest req) {
         String token = getTokenFromRequest(req);
@@ -434,11 +481,12 @@ public class StudentController {
 
     // -- Activity (Feature 12) - Student view & register --
     @GetMapping("/api/student/activity/list")
-    public ResponseEntity<Result> getAvailableActivities(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize, HttpServletRequest req) {
+    public ResponseEntity<Result> getAvailableActivities(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String keyword, HttpServletRequest req) {
         String token = getTokenFromRequest(req);
         if (token == null) return Result.error(401, "Unauthorized");
         String sid = userMapper.getUserById(Long.parseLong(jwtTokenProvider.getUserIdFromToken(token))).getSchId();
-        return Result.success(activityService.getAvailableForStudent(sid, page, pageSize), "ok");
+        return Result.success(activityService.getAvailableForStudent(sid, page, pageSize, keyword), "ok");
     }
     @PostMapping("/api/student/activity/register/{activityId}")
     public ResponseEntity<Result> registerActivity(@PathVariable Long activityId, HttpServletRequest req) {

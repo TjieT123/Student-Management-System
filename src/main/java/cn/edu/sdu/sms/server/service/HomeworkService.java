@@ -306,6 +306,10 @@ public class HomeworkService {
         return homework;
     }
 
+    public String getHomeworkAttachments(Long homeworkId) {
+        return homeworkMapper.getAttachments(homeworkId);
+    }
+
     // 教师追加作业附件
     public List<AttachmentItem> addHomeworkAttachment(Long homeworkId, AttachmentItem item, Long userId) {
         Homework homework = homeworkMapper.getHomeworkById(homeworkId);

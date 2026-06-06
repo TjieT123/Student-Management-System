@@ -2,8 +2,11 @@ package cn.edu.sdu.sms.server.service;
 
 import cn.edu.sdu.sms.server.dto.AiGradeRequest;
 import cn.edu.sdu.sms.server.dto.AiGradeResult;
+import cn.edu.sdu.sms.server.mapper.HomeworkMapper;
 import cn.edu.sdu.sms.server.mapper.HomeworkSubmitMapper;
+import cn.edu.sdu.sms.server.models.AttachmentItem;
 import cn.edu.sdu.sms.server.models.HomeworkSubmit;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -71,6 +74,7 @@ public class AiGradingService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final HomeworkSubmitMapper submitMapper;
+    private final HomeworkMapper homeworkMapper;
 
     @Value("${ai.api.url}")
     private String apiUrl;
@@ -81,8 +85,9 @@ public class AiGradingService {
     @Value("${ai.model}")
     private String model;
 
-    public AiGradingService(HomeworkSubmitMapper submitMapper) {
+    public AiGradingService(HomeworkSubmitMapper submitMapper, HomeworkMapper homeworkMapper) {
         this.submitMapper = submitMapper;
+        this.homeworkMapper = homeworkMapper;
         this.objectMapper = new ObjectMapper();
         this.restTemplate = new RestTemplateBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
@@ -96,10 +101,20 @@ public class AiGradingService {
             return null;
         }
 
+        // Extract text from homework attachments (if homeworkId provided)
+        String homeworkAttText = "";
+        if (request.getHomeworkId() != null) {
+            homeworkAttText = extractAttachmentsFromJson(homeworkMapper.getAttachments(request.getHomeworkId()));
+        }
+        // Extract text from submission attachments
+        String submitAttText = extractAttachmentsFromJson(submit.getAttachments());
+
         String userPrompt = buildUserPrompt(
                 request.getHomeworkTitle(),
                 request.getHomeworkContent(),
-                submit.getContent()
+                submit.getContent(),
+                homeworkAttText,
+                submitAttText
         );
 
         Map<String, Object> body = Map.of(
@@ -143,9 +158,12 @@ public class AiGradingService {
     }
 
     public String getSuggestion(String homeworkTitle, String homeworkContent,
-                                  String studentAnswer, Integer score, String teacherComment) {
+                                  String studentAnswer, Integer score, String teacherComment,
+                                  String hwAttachmentsJson, String submitAttachmentsJson) {
+        String hwAttText = extractAttachmentsFromJson(hwAttachmentsJson);
+        String subAttText = extractAttachmentsFromJson(submitAttachmentsJson);
         String userPrompt = buildSuggestionPrompt(homeworkTitle, homeworkContent,
-                studentAnswer, score, teacherComment);
+                studentAnswer, score, teacherComment, hwAttText, subAttText);
 
         Map<String, Object> body = Map.of(
                 "model", model,
@@ -196,38 +214,42 @@ public class AiGradingService {
 
     private String buildSuggestionPrompt(String homeworkTitle, String homeworkContent,
                                           String studentAnswer, Integer score,
-                                          String teacherComment) {
-        return """
-            作业题目：%s
-
-            作业要求：%s
-
-            学生答案：%s
-
-            教师评分：%d分
-
-            教师评语：%s
-
-            请根据以上信息，为该学生提供个性化的学习改进建议。
-            严格按以下 JSON 格式返回：
-            {"suggestion": "你的建议..."}
-            """.formatted(homeworkTitle, homeworkContent, studentAnswer, score,
-                teacherComment != null ? teacherComment : "无");
+                                          String teacherComment,
+                                          String hwAttText, String subAttText) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("作业题目：").append(homeworkTitle != null ? homeworkTitle : "").append("\n\n");
+        sb.append("作业要求：\n").append(homeworkContent != null ? homeworkContent : "").append("\n");
+        if (!hwAttText.isEmpty()) {
+            sb.append("\n【作业附件内容】\n").append(hwAttText).append("\n");
+        }
+        sb.append("\n学生答案：\n").append(studentAnswer != null ? studentAnswer : "").append("\n");
+        if (!subAttText.isEmpty()) {
+            sb.append("\n【学生提交附件内容】\n").append(subAttText).append("\n");
+        }
+        sb.append("\n教师评分：").append(score).append("分\n\n");
+        sb.append("教师评语：").append(teacherComment != null ? teacherComment : "无").append("\n\n");
+        sb.append("请根据以上全部信息，为该学生提供个性化的学习改进建议。\n");
+        sb.append("严格按以下 JSON 格式返回：\n");
+        sb.append("{\"suggestion\": \"你的建议...\"}");
+        return sb.toString();
     }
 
     private String buildUserPrompt(String homeworkTitle, String homeworkContent,
-                                   String studentSubmission) {
-        return """
-            作业题目：%s
-
-            作业要求：
-            %s
-
-            学生提交内容：
-            %s
+                                   String studentSubmission, String homeworkAttText, String submitAttText) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("作业题目：").append(homeworkTitle != null ? homeworkTitle : "").append("\n\n");
+        sb.append("作业要求：\n").append(homeworkContent != null ? homeworkContent : "").append("\n");
+        if (!homeworkAttText.isEmpty()) {
+            sb.append("\n【作业附件内容】\n").append(homeworkAttText).append("\n");
+        }
+        sb.append("\n学生提交内容：\n").append(studentSubmission != null ? studentSubmission : "").append("\n");
+        if (!submitAttText.isEmpty()) {
+            sb.append("\n【学生提交附件内容】\n").append(submitAttText).append("\n");
+        }
+        sb.append("""
 
             请完成以下任务：
-            1. 根据作业类型，从通用评分框架中选取适用的维度进行评分
+            1. 根据作业类型和所有提供的内容（包括附件），从通用评分框架中选取适用的维度进行评分
             2. 给出分数（0-100的整数）
             3. 撰写详细的综合评语（150-300字），包含具体分析和改进方向
             4. 列出2-4个具体的亮点（highlights）
@@ -235,7 +257,33 @@ public class AiGradingService {
 
             严格按以下 JSON 格式返回，不要包含任何其他内容：
             {"score": 85, "comment": "综合评语...", "highlights": "1. xx 2. xx", "suggestions": "1. xx 2. xx"}
-            """.formatted(homeworkTitle, homeworkContent, studentSubmission);
+            """);
+        return sb.toString();
+    }
+
+    /**
+     * Parse attachments JSON and extract readable text.
+     * Returns concatenated text from supported file types only.
+     */
+    private String extractAttachmentsFromJson(String attachmentsJson) {
+        if (attachmentsJson == null || attachmentsJson.isEmpty() || "[]".equals(attachmentsJson)) {
+            return "";
+        }
+        try {
+            List<AttachmentItem> items = objectMapper.readValue(attachmentsJson, new TypeReference<List<AttachmentItem>>() {});
+            StringBuilder sb = new StringBuilder();
+            for (AttachmentItem item : items) {
+                String text = AttachmentTextExtractor.extract(item.getFileName(), item.getFileType(), item.getBase64());
+                if (text != null && !text.isEmpty()) {
+                    sb.append("--- 文件: ").append(item.getFileName()).append(" ---\n");
+                    sb.append(text).append("\n");
+                }
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            log.warn("Failed to parse attachments JSON: {}", e.getMessage());
+            return "";
+        }
     }
 
     private String extractAiContent(String responseBody) {

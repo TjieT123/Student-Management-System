@@ -15,8 +15,9 @@ public interface ActivityMapper {
     @Select("select * from activity order by create_time desc LIMIT #{limit} OFFSET #{offset}")
     List<Activity> selectAll(@Param("offset") int offset, @Param("limit") int limit);
 
-    @Select("select count(*) from activity")
-    int countAll();
+    @Select("<script>select count(*) from activity " +
+            "<where><if test='keyword != null and keyword != \"\"'>title like concat('%',#{keyword},'%')</if></where></script>")
+    int countAll(@Param("keyword") String keyword);
 
     @Select("select * from activity where id = #{id}")
     Activity getById(Long id);
@@ -41,7 +42,9 @@ public interface ActivityMapper {
     @Delete("delete from activity_registration where activity_id = #{activityId} and sid = #{sid}")
     int cancelRegistration(@Param("activityId") Long activityId, @Param("sid") String sid);
 
-    @Select("select a.*, (select count(*) from activity_registration where activity_id = a.id) as registered_count " +
-            "from activity a order by a.create_time desc LIMIT #{limit} OFFSET #{offset}")
-    List<Map<String, Object>> selectAllWithCount(@Param("offset") int offset, @Param("limit") int limit);
+    @Select("<script>select a.*, (select count(*) from activity_registration where activity_id = a.id) as registered_count " +
+            "from activity a " +
+            "<where><if test='keyword != null and keyword != \"\"'>a.title like concat('%',#{keyword},'%')</if></where> " +
+            "order by a.create_time desc LIMIT #{limit} OFFSET #{offset}</script>")
+    List<Map<String, Object>> selectAllWithCount(@Param("offset") int offset, @Param("limit") int limit, @Param("keyword") String keyword);
 }

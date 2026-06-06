@@ -5,7 +5,6 @@ import cn.edu.sdu.sms.server.models.AttachmentItem;
 import cn.edu.sdu.sms.server.models.Course;
 import cn.edu.sdu.sms.server.service.AttachmentService;
 import cn.edu.sdu.sms.server.service.CourseService;
-import cn.edu.sdu.sms.server.service.SemesterConfigService;
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -30,9 +29,6 @@ public class CourseController {
 
     @Autowired
     private AttachmentService attachmentService;
-
-    @Autowired
-    private SemesterConfigService semesterConfigService;
 
     @Autowired
     private cn.edu.sdu.sms.server.mapper.UserMapper userMapper;
@@ -205,54 +201,13 @@ public class CourseController {
         }
     }
 
-    // -- Semester config (Feature 2) --
-    @GetMapping("/api/admin/semester")
-    public ResponseEntity<Result> getSemester() {
-        return Result.success(semesterConfigService.getConfig(), "ok");
-    }
-
-    @PutMapping("/api/admin/semester")
-    public ResponseEntity<Result> saveSemester(@RequestBody cn.edu.sdu.sms.server.models.SemesterConfig config,
-                                                HttpServletRequest request) {
-        String token = getTokenFromRequest(request);
-        if (token == null) return Result.error(401, "Unauthorized");
-        if (!"ADMIN".equals(jwtTokenProvider.getRoleFromToken(token))) return Result.error(401, "需要管理员权限");
-        return Result.success(semesterConfigService.saveConfig(config), "保存成功");
-    }
-
-    // -- Schedule (Feature 2) --
-    @GetMapping("/api/student/schedule")
-    public ResponseEntity<Result> getStudentSchedule(@RequestParam int week, HttpServletRequest request) {
-        String token = getTokenFromRequest(request);
-        if (token == null) return Result.error(401, "Unauthorized");
-        String userId = jwtTokenProvider.getUserIdFromToken(token);
-        String sid = null;
-        try { sid = userMapper.getUserById(Long.parseLong(userId)).getSchId(); } catch(Exception e) {}
-        if (sid == null) return Result.error(400, "无法获取学生信息");
-        return Result.success(courseService.getStudentSchedule(sid, week), "ok");
-    }
-
-    @GetMapping("/api/student/schedule/current-week")
-    public ResponseEntity<Result> getStudentCurrentWeekSchedule(HttpServletRequest request) {
-        int week = semesterConfigService.calculateCurrentWeek();
-        return getStudentSchedule(week, request);
-    }
-
-    @GetMapping("/api/teacher/schedule")
-    public ResponseEntity<Result> getTeacherSchedule(@RequestParam int week, HttpServletRequest request) {
-        String token = getTokenFromRequest(request);
-        if (token == null) return Result.error(401, "Unauthorized");
-        String userId = jwtTokenProvider.getUserIdFromToken(token);
-        return Result.success(courseService.getTeacherSchedule(userId, week), "ok");
-    }
-
     // -- Materials (Feature 3) --
-    @GetMapping("/api/course/{courseId}/materials")
+    @GetMapping("/{courseId}/materials")
     public ResponseEntity<Result> getMaterials(@PathVariable Long courseId) {
         return Result.success(courseService.getMaterials(courseId), "ok");
     }
 
-    @PutMapping("/api/course/{courseId}/material")
+    @PutMapping("/{courseId}/material")
     public ResponseEntity<Result> addMaterial(@PathVariable Long courseId, @RequestBody AttachmentItem item,
                                                HttpServletRequest request) {
         String token = getTokenFromRequest(request);
@@ -263,7 +218,7 @@ public class CourseController {
         } catch (RuntimeException e) { return Result.error(400, e.getMessage()); }
     }
 
-    @DeleteMapping("/api/course/{courseId}/material/{index}")
+    @DeleteMapping("/{courseId}/material/{index}")
     public ResponseEntity<Result> deleteMaterial(@PathVariable Long courseId, @PathVariable int index,
                                                   HttpServletRequest request) {
         String token = getTokenFromRequest(request);

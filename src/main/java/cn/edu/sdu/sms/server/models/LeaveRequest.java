@@ -1,5 +1,6 @@
 package cn.edu.sdu.sms.server.models;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,10 +15,11 @@ public class LeaveRequest {
     private Long id;
     private String sid;
     private String type;
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate endDate;
     private String reason;
-    private String destination;
     private String status;
     private Long reviewerId;
     private LocalDateTime reviewTime;

@@ -11,7 +11,7 @@ import cn.edu.sdu.sms.server.service.AttachmentService;
 import cn.edu.sdu.sms.server.service.CourseScoreService;
 import cn.edu.sdu.sms.server.service.CourseService;
 import cn.edu.sdu.sms.server.service.HomeworkService;
-import cn.edu.sdu.sms.server.service.SemesterConfigService;
+
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -48,9 +48,6 @@ public class TeacherController {
 
     @Autowired
     private CourseService courseService;
-
-    @Autowired
-    private SemesterConfigService semesterConfigService;
 
     @Autowired
     private cn.edu.sdu.sms.server.mapper.CourseMapper courseMapper;
@@ -173,10 +170,11 @@ public class TeacherController {
         }
 
         Long submitId = Long.parseLong(request.get("submitId").toString());
+        Long homeworkId = request.get("homeworkId") != null ? Long.parseLong(request.get("homeworkId").toString()) : null;
         String homeworkTitle = (String) request.get("homeworkTitle");
         String homeworkContent = (String) request.get("homeworkContent");
 
-        AiGradeRequest aiRequest = new AiGradeRequest(submitId, homeworkTitle, homeworkContent);
+        AiGradeRequest aiRequest = new AiGradeRequest(submitId, homeworkId, homeworkTitle, homeworkContent);
         AiGradeResult result = aiGradingService.grade(aiRequest);
 
         if (result == null) {
@@ -238,6 +236,18 @@ public class TeacherController {
         } catch (RuntimeException e) {
             return Result.error(400, e.getMessage());
         }
+    }
+
+    /**
+     * 获取作业附件列表
+     */
+    @GetMapping("/homework/{homeworkId}/attachments")
+    public ResponseEntity<Result> getHomeworkAttachments(@PathVariable Long homeworkId,
+                                                          HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) return Result.error(401, "Unauthorized");
+        String json = homeworkService.getHomeworkAttachments(homeworkId);
+        return Result.success(attachmentService.parseAttachments(json), "ok");
     }
 
     /**
@@ -337,8 +347,6 @@ public class TeacherController {
         Long userId = Long.parseLong(jwtTokenProvider.getUserIdFromToken(token));
         Map<String, Object> result = new HashMap<>();
         result.put("courseCount", courseMapper.countTeacherCourses(userId.toString()));
-        result.put("currentWeek", semesterConfigService.calculateCurrentWeek());
-        result.put("schedule", courseService.getTeacherSchedule(userId.toString(), semesterConfigService.calculateCurrentWeek()));
         return Result.success(result, "ok");
     }
 
