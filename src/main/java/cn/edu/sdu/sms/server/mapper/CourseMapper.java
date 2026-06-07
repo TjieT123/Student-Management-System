@@ -91,21 +91,6 @@ public interface CourseMapper {
             "where sc.course_id = #{courseId} order by s.sid")
     List<Map<String, Object>> getEnrolledStudents(@Param("courseId") Long courseId);
 
-    // -- Schedule queries (Feature 2) --
-    @Select("select c.id, c.course_name as courseName, c.type, c.start_week as startWeek, c.end_week as endWeek, c.schedule " +
-            "from student_course sc join course c on sc.course_id = c.id " +
-            "where sc.sid = #{sid} and c.start_week <= #{week} and c.end_week >= #{week}")
-    List<Map<String, Object>> getStudentSchedule(@Param("sid") String sid, @Param("week") int week);
-
-    @Select("select c.id, c.course_name as courseName, c.start_week as startWeek, c.end_week as endWeek, c.schedule " +
-            "from course c where c.teacher_id = #{teacherId} and c.start_week <= #{week} and c.end_week >= #{week}")
-    List<Map<String, Object>> getTeacherSchedule(@Param("teacherId") String teacherId, @Param("week") int week);
-
-    @Select("select c.id, c.course_name as courseName, c.type, c.start_week as startWeek, " +
-            "c.end_week as endWeek, c.schedule from student_course sc join course c on sc.course_id = c.id " +
-            "where sc.sid = #{sid}")
-    List<Map<String, Object>> getStudentEnrolledCoursesWithSchedule(@Param("sid") String sid);
-
     // -- Materials queries (Feature 3) --
     @Select("select materials from course where id = #{id}")
     String getMaterials(@Param("id") Long id);
@@ -115,12 +100,12 @@ public interface CourseMapper {
 
     // -- Updated insert/update with new fields --
     @Options(useGeneratedKeys = true, keyProperty = "id")
-    @Insert("insert into course(course_name, detail, address, teacher_id, type, start_week, end_week, materials, credits) " +
-            "values(#{courseName}, #{detail}, #{address}, #{teacherId}, #{type}, #{startWeek}, #{endWeek}, #{materials}, #{credits})")
+    @Insert("insert into course(course_name, detail, address, teacher_id, type, materials, credits) " +
+            "values(#{courseName}, #{detail}, #{address}, #{teacherId}, #{type}, #{materials}, #{credits})")
     int insertCourse(Course course);
 
     @Update("update course set course_name = #{courseName}, detail = #{detail}, address = #{address}, teacher_id = #{teacherId}, " +
-            "type = #{type}, start_week = #{startWeek}, end_week = #{endWeek}, materials = #{materials}, credits = #{credits} where id = #{id}")
+            "type = #{type}, materials = #{materials}, credits = #{credits} where id = #{id}")
     int updateCourse(Course course);
 }
 

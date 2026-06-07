@@ -191,15 +191,6 @@ public class CourseService {
         courseMapper.deleteStudentCourse(sid, courseId);
     }
 
-    // -- Schedule methods (Feature 2) --
-    public List<Map<String, Object>> getStudentSchedule(String sid, int week) {
-        return courseMapper.getStudentSchedule(sid, week);
-    }
-
-    public List<Map<String, Object>> getTeacherSchedule(String teacherId, int week) {
-        return courseMapper.getTeacherSchedule(teacherId, week);
-    }
-
     // -- Materials methods (Feature 3) --
     public List<cn.edu.sdu.sms.server.models.AttachmentItem> getMaterials(Long courseId) {
         String json = courseMapper.getMaterials(courseId);
@@ -227,54 +218,10 @@ public class CourseService {
         courseMapper.updateMaterials(courseId, newJson);
     }
 
-    // -- Conflict detection for enroll (Feature 2) --
     @org.springframework.transaction.annotation.Transactional
     public void enrollCourse(String sid, Long courseId) {
         if (courseMapper.countStudentCourse(sid, courseId) > 0)
             throw new RuntimeException("Already enrolled in this course");
-
-        Course newCourse = courseMapper.getCourseById(courseId);
-        if (newCourse == null) throw new RuntimeException("Course not found");
-        if (newCourse.getSchedule() == null || newCourse.getSchedule().isEmpty()) {
-            courseMapper.insertStudentCourse(sid, courseId);
-            return;
-        }
-
-        // Conflict detection
-        List<Map<String, Object>> enrolled = courseMapper.getStudentEnrolledCoursesWithSchedule(sid);
-        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        try {
-            List<Map<String, Object>> newSchedule = mapper.readValue(newCourse.getSchedule(), List.class);
-            int newStart = newCourse.getStartWeek() != null ? newCourse.getStartWeek() : 1;
-            int newEnd = newCourse.getEndWeek() != null ? newCourse.getEndWeek() : 18;
-
-            for (Map<String, Object> ec : enrolled) {
-                String ecSchedule = (String) ec.get("schedule");
-                if (ecSchedule == null || ecSchedule.isEmpty()) continue;
-                List<Map<String, Object>> ecSlots = mapper.readValue(ecSchedule, List.class);
-                Long ecStartObj = ec.get("startWeek") != null ? ((Number) ec.get("startWeek")).longValue() : 1L;
-                Long ecEndObj = ec.get("endWeek") != null ? ((Number) ec.get("endWeek")).longValue() : 18L;
-                int ecStart = ecStartObj.intValue();
-                int ecEnd = ecEndObj.intValue();
-
-                if (newStart > ecEnd || newEnd < ecStart) continue; // no week overlap
-
-                for (Map<String, Object> ns : newSchedule) {
-                    int nDay = ((Number) ns.get("dayOfWeek")).intValue();
-                    int nSlot = ((Number) ns.get("slot")).intValue();
-                    for (Map<String, Object> es : ecSlots) {
-                        int eDay = ((Number) es.get("dayOfWeek")).intValue();
-                        int eSlot = ((Number) es.get("slot")).intValue();
-                        if (nDay == eDay && nSlot == eSlot) {
-                            String conflictCourse = (String) ec.get("courseName");
-                            throw new RuntimeException("该课程与《" + conflictCourse + "》（周" + getDayName(nDay) + " 第" + nSlot + "节）时间冲突");
-                        }
-                    }
-                }
-            }
-        } catch (RuntimeException e) { throw e; }
-        catch (Exception e) { /* parse error, skip conflict check */ }
-
         courseMapper.insertStudentCourse(sid, courseId);
     }
 
@@ -293,5 +240,4 @@ public class CourseService {
         return courses;
     }
 
-    private static String getDayName(int d) { return new String[]{"一","二","三","四","五","六","日"}[d-1]; }
 }

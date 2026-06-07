@@ -14,9 +14,6 @@ public class Course {
     private String address;
     private String teacherId;
     private String type = "REQUIRED";
-    private Integer startWeek;
-    private Integer endWeek;
-    private String schedule;
     private String materials;
     private Double credits = 3.0;
 }
