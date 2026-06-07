@@ -63,5 +63,8 @@ public interface HomeworkSubmitMapper {
 
     @Delete("delete from homework_submit where homework_id = #{homeworkId}")
     int deleteByHomeworkId(@Param("homeworkId") Long homeworkId);
+
+    @Delete("delete from homework_submit where sid = #{sid}")
+    int deleteBySid(@Param("sid") String sid);
 }
 

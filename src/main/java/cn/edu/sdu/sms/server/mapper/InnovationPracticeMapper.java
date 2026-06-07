@@ -82,4 +82,7 @@ public interface InnovationPracticeMapper {
 
     @Delete("delete from innovation_practice where id = #{id}")
     int delete(Long id);
+
+    @Delete("delete from innovation_practice where sid = #{sid}")
+    int deleteBySid(String sid);
 }

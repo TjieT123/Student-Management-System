@@ -11,7 +11,6 @@ import java.util.*;
 public class InnovationPracticeService {
     @Autowired private InnovationPracticeMapper mapper;
     @Autowired private cn.edu.sdu.sms.server.mapper.UserMapper userMapper;
-    @Autowired(required = false) private NotificationService notificationService;
 
     public InnovationPractice submit(InnovationPractice p) {
         p.setStatus("PENDING");
@@ -40,13 +39,6 @@ public class InnovationPracticeService {
     public void update(InnovationPractice p) { mapper.update(p); }
     public void approve(Long id, String status, Long reviewerId, String comment) {
         mapper.approve(id, status, reviewerId, comment);
-        InnovationPractice p = mapper.getById(id);
-        if (notificationService != null && p != null) {
-            cn.edu.sdu.sms.server.models.User user = userMapper.getUserBySchId(p.getSid());
-            if (user != null)
-                notificationService.createNotification(user.getId(), "实践记录已" + (status.equals("APPROVED") ? "通过" : "驳回"),
-                    "您的创新实践记录《" + p.getTitle() + "》已" + (status.equals("APPROVED") ? "通过审核" : "被驳回") + "。");
-        }
     }
     public void delete(Long id) { mapper.delete(id); }
 }

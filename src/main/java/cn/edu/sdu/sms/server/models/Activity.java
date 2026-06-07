@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -13,11 +12,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class Activity {
     private Long id;
-    private String sid; // publisher (admin user id)
+    private String sid;
     private String title;
     private String type;
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate date;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime date;
     private String location;
     private String description;
     private String photos;

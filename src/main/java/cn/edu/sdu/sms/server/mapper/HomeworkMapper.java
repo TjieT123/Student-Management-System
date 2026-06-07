@@ -83,5 +83,8 @@ public interface HomeworkMapper {
 
     @Delete("delete from homework where id = #{id}")
     int deleteHomework(Long id);
+
+    @Delete("delete from homework where course_id = #{courseId}")
+    int deleteByCourseId(@Param("courseId") Long courseId);
 }
 

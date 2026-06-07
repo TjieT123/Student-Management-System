@@ -66,6 +66,12 @@ public interface CourseMapper {
     @Delete("delete from student_course where sid = #{sid} and course_id = #{courseId}")
     int deleteStudentCourse(@Param("sid") String sid, @Param("courseId") Long courseId);
 
+    @Delete("delete from student_course where course_id = #{courseId}")
+    int deleteStudentCourseByCourseId(@Param("courseId") Long courseId);
+
+    @Delete("delete from student_course where sid = #{sid}")
+    int deleteStudentCourseBySid(@Param("sid") String sid);
+
     @Select("select c.id, c.course_name as courseName, c.type as type, c.credits as credits, c.address as address, t.name as teacherName " +
             "from student_course sc " +
             "join course c on sc.course_id = c.id " +

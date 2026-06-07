@@ -33,6 +33,24 @@ public class AdminService {
     @Autowired
     private StudentMapperEnhanced studentMapper;
 
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.HomeworkMapper homeworkMapper;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.HomeworkSubmitMapper submitMapper;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.HonorMapper honorMapper;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.InnovationPracticeMapper practiceMapper;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.LeaveRequestMapper leaveMapper;
+
+    @Autowired
+    private cn.edu.sdu.sms.server.mapper.ActivityMapper activityMapper;
+
     // 获取全部用户
     public List<User> getUserList() {
         return userMapper.getAllUsers();
@@ -193,15 +211,25 @@ public class AdminService {
         return user;
     }
 
-    // 删除用户（级联删除关联的 teacher/student 记录）
+    // 删除用户（级联删除关联的 teacher/student 记录及相关数据）
     @Transactional
     public void deleteUser(Long id) {
         User user = userMapper.getUserById(id);
         if (user != null) {
             String schId = user.getSchId();
             if ("TEACHER".equals(user.getRole())) {
+                int courseCount = courseMapper.countTeacherCourses(schId);
+                if (courseCount > 0) {
+                    throw new RuntimeException("该教师有 " + courseCount + " 门正在教授的课程，无法删除。请先删除相关课程或更换任课教师");
+                }
                 teacherMapper.deleteTeacher(schId);
             } else if ("STUDENT".equals(user.getRole())) {
+                submitMapper.deleteBySid(schId);
+                courseMapper.deleteStudentCourseBySid(schId);
+                honorMapper.deleteBySid(schId);
+                practiceMapper.deleteBySid(schId);
+                leaveMapper.deleteBySid(schId);
+                activityMapper.cancelAllRegistrationsBySid(schId);
                 studentMapper.deleteStudent(schId);
             }
         }
@@ -214,6 +242,8 @@ public class AdminService {
         String detail = (String) request.get("detail");
         String address = (String) request.get("address");
         String teacherId = (String) request.get("teacherId");
+        String type = (String) request.get("type");
+        Object creditsObj = request.get("credits");
 
         if (courseName == null || courseName.trim().isEmpty()) {
             throw new RuntimeException("课程名不能为空");
@@ -228,6 +258,8 @@ public class AdminService {
         course.setDetail(detail);
         course.setAddress(address);
         course.setTeacherId(teacherId);
+        if (type != null) course.setType(type);
+        if (creditsObj != null) course.setCredits(((Number) creditsObj).doubleValue());
         courseMapper.insertCourse(course);
         return course;
     }
@@ -272,8 +304,19 @@ public class AdminService {
         return course;
     }
 
-    // 删除课程
+    // 删除课程（级联删除关联的作业、提交记录和选课记录）
+    @Transactional
     public void deleteCourse(Long id) {
+        // 删除该课程下所有作业的提交记录
+        java.util.List<cn.edu.sdu.sms.server.models.Homework> homeworks = homeworkMapper.getHomeworkByCourseId(id);
+        for (cn.edu.sdu.sms.server.models.Homework hw : homeworks) {
+            submitMapper.deleteByHomeworkId(hw.getId());
+        }
+        // 删除该课程下的所有作业
+        homeworkMapper.deleteByCourseId(id);
+        // 删除该课程的所有选课记录
+        courseMapper.deleteStudentCourseByCourseId(id);
+        // 删除课程
         courseMapper.deleteCourse(id);
     }
 
@@ -361,7 +404,12 @@ public class AdminService {
     }
 
     // 删除教师（级联删除关联的 user 记录）
+    @Transactional
     public void deleteTeacherCascade(String schId) {
+        int courseCount = courseMapper.countTeacherCourses(schId);
+        if (courseCount > 0) {
+            throw new RuntimeException("该教师有 " + courseCount + " 门正在教授的课程，无法删除。请先删除相关课程或更换任课教师");
+        }
         teacherMapper.deleteTeacher(schId);
         userMapper.deleteUserBySchId(schId);
     }
@@ -443,8 +491,15 @@ public class AdminService {
         studentMapper.deleteStudent(sid);
     }
 
-    // 删除学生（级联删除关联的 user 记录）
+    // 删除学生（级联删除关联的 user 记录及相关数据）
+    @Transactional
     public void deleteStudentCascade(String sid) {
+        submitMapper.deleteBySid(sid);
+        courseMapper.deleteStudentCourseBySid(sid);
+        honorMapper.deleteBySid(sid);
+        practiceMapper.deleteBySid(sid);
+        leaveMapper.deleteBySid(sid);
+        activityMapper.cancelAllRegistrationsBySid(sid);
         studentMapper.deleteStudent(sid);
         userMapper.deleteUserBySchId(sid);
     }

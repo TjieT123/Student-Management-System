@@ -42,6 +42,12 @@ public interface ActivityMapper {
     @Delete("delete from activity_registration where activity_id = #{activityId} and sid = #{sid}")
     int cancelRegistration(@Param("activityId") Long activityId, @Param("sid") String sid);
 
+    @Delete("delete from activity_registration where sid = #{sid}")
+    int cancelAllRegistrationsBySid(@Param("sid") String sid);
+
+    @Delete("delete from activity_registration where activity_id = #{activityId}")
+    int deleteRegistrationsByActivityId(@Param("activityId") Long activityId);
+
     @Select("<script>select a.*, (select count(*) from activity_registration where activity_id = a.id) as registered_count " +
             "from activity a " +
             "<where><if test='keyword != null and keyword != \"\"'>a.title like concat('%',#{keyword},'%')</if></where> " +

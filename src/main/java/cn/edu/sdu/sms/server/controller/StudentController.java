@@ -9,7 +9,6 @@ import cn.edu.sdu.sms.server.service.AttachmentService;
 import cn.edu.sdu.sms.server.service.CourseScoreService;
 import cn.edu.sdu.sms.server.service.CourseService;
 import cn.edu.sdu.sms.server.service.HomeworkService;
-import cn.edu.sdu.sms.server.service.NotificationService;
 
 import cn.edu.sdu.sms.server.service.StudentService;
 import cn.edu.sdu.sms.server.utils.JwtTokenProvider;
@@ -50,9 +49,6 @@ public class StudentController {
 
     @Autowired
     private CourseService courseService;
-
-    @Autowired
-    private NotificationService notificationService;
 
     @Autowired
     private cn.edu.sdu.sms.server.mapper.UserMapper userMapper;

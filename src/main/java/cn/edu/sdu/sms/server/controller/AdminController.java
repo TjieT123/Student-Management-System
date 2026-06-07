@@ -191,7 +191,11 @@ public class AdminController {
             return Result.error(404, "User not found");
         }
 
-        adminService.deleteUser(id);
+        try {
+            adminService.deleteUser(id);
+        } catch (RuntimeException e) {
+            return Result.error(400, e.getMessage());
+        }
         return Result.success(null, "User deleted successfully");
     }
 

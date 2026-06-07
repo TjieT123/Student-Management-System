@@ -66,7 +66,7 @@ public class ActivityService {
     public void register(Long activityId, String sid) {
         Activity a = mapper.getById(activityId);
         if (a == null) throw new RuntimeException("活动不存在");
-        if (a.getDate() != null && a.getDate().isBefore(LocalDate.now())) throw new RuntimeException("活动已过期，无法报名");
+        if (a.getDate() != null && a.getDate().isBefore(java.time.LocalDateTime.now())) throw new RuntimeException("活动已过期，无法报名");
         if (mapper.isRegistered(activityId, sid) > 0) throw new RuntimeException("已报名，不能重复报名");
         if (a.getMaxParticipants() != null && a.getMaxParticipants() > 0) {
             int count = mapper.countRegistrations(activityId);
@@ -80,6 +80,10 @@ public class ActivityService {
     }
 
     public Activity getById(Long id) { return mapper.getById(id); }
-    public void delete(Long id) { mapper.delete(id); }
+    @org.springframework.transaction.annotation.Transactional
+    public void delete(Long id) {
+        mapper.deleteRegistrationsByActivityId(id);
+        mapper.delete(id);
+    }
     public Activity update(Activity a) { mapper.update(a); return a; }
 }

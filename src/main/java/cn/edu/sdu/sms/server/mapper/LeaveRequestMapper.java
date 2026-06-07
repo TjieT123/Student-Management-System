@@ -71,4 +71,7 @@ public interface LeaveRequestMapper {
 
     @Delete("delete from leave_request where id = #{id}")
     int delete(Long id);
+
+    @Delete("delete from leave_request where sid = #{sid}")
+    int deleteBySid(String sid);
 }

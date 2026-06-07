@@ -42,4 +42,7 @@ public interface HonorMapper {
 
     @Delete("delete from honor where id = #{id}")
     int delete(Long id);
+
+    @Delete("delete from honor where sid = #{sid}")
+    int deleteBySid(String sid);
 }
