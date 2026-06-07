@@ -53,15 +53,23 @@ public class AuthController {
     public ResponseEntity<Result> register(@RequestBody RegisterRequest req) {
         if (req.getUsername() == null || req.getPassword() == null
                 || req.getName() == null || req.getRole() == null || req.getSch_id() == null) {
-            return Result.error(400, "Username, password, name, role, and sch_id are required");
+            return Result.error(400, "用户名、密码、姓名、身份和学号/工号为必填项");
+        }
+
+        if (authService.getUserByUsername(req.getUsername()) != null) {
+            return Result.error(409, "用户名已存在，请更换用户名");
+        }
+
+        if (req.getSch_id() != null && authService.getUserBySchId(req.getSch_id()) != null) {
+            return Result.error(409, "该学号/工号已被注册");
         }
 
         User user = authService.register(req);
         if (user == null) {
-            return Result.error(409, "Username already exists");
+            return Result.error(500, "注册失败");
         }
 
-        return Result.success(user, "Registration successful");
+        return Result.success(user, "注册成功");
     }
 
     /**

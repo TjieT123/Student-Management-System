@@ -128,15 +128,19 @@ public class AdminController {
         String schId = request.get("sch_id");
 
         if (username == null || password == null || name == null || role == null || schId == null) {
-            return Result.error(400, "Username, password, name, and role are required");
+            return Result.error(400, "用户名、密码、姓名、身份和工号为必填项");
         }
 
         if (adminService.getUserByUsername(username) != null) {
-            return Result.error(409, "Username already exists");
+            return Result.error(409, "用户名已存在，请更换用户名");
+        }
+
+        if (adminService.getUserBySchId(schId) != null) {
+            return Result.error(409, "该工号已被使用，请更换工号");
         }
 
         User user = adminService.addUser(request);
-        return Result.success(user, "User added successfully");
+        return Result.success(user, "添加成功");
     }
 
     /**
@@ -402,19 +406,19 @@ public class AdminController {
         String sClassStr = request.get("s_class");
 
         if (username == null || password == null || name == null || sid == null) {
-            return Result.error(400, "Username, password, name, and sid are required");
+            return Result.error(400, "用户名、密码、姓名和学号为必填项");
         }
 
         if (adminService.getUserByUsername(username) != null) {
-            return Result.error(409, "Username already exists");
+            return Result.error(409, "用户名已存在，请更换用户名");
         }
 
-        if (adminService.getStudentBySid(sid) != null) {
-            return Result.error(409, "Student already exists");
+        if (adminService.getUserBySchId(sid) != null) {
+            return Result.error(409, "该学号已被使用，请更换学号");
         }
 
         Map<String, Object> result = adminService.addStudentUser(request);
-        return Result.success(result, "Student user added successfully");
+        return Result.success(result, "添加学生成功");
     }
 
     // -- Honor management (Feature 9) --

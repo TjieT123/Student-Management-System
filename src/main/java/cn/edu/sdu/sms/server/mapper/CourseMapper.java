@@ -57,7 +57,7 @@ public interface CourseMapper {
     @Select("select count(*) from student_course where sid = #{sid} and course_id = #{courseId}")
     int countStudentCourse(@Param("sid") String sid, @Param("courseId") Long courseId);
 
-    @Select("select count(*) from student_course where course_id = #{courseId}")
+    @Select("select count(*) from student_course sc join student s on sc.sid = s.sid where sc.course_id = #{courseId}")
     int countStudentsByCourseId(@Param("courseId") Long courseId);
 
     @Insert("insert into student_course(sid, course_id) values(#{sid}, #{courseId})")

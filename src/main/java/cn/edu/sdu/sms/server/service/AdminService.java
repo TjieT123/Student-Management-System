@@ -48,6 +48,10 @@ public class AdminService {
         return userMapper.getUserByUsername(username);
     }
 
+    public User getUserBySchId(String schId) {
+        return userMapper.getUserBySchId(schId);
+    }
+
     /**
      * 分页获取用户列表（按角色过滤，不含密码），支持按schId和name搜索
      */

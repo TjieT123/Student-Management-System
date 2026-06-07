@@ -22,7 +22,10 @@ public interface HomeworkSubmitMapper {
     HomeworkSubmit getSubmissionById(Long id);
 
     @Select("select * from homework_submit where homework_id = #{homeworkId}")
-    List<HomeworkSubmit> getSubmissionsByHomeworkId(Long homeworkId);
+    List<HomeworkSubmit> getSubmissionsByHomeworkId(@Param("homeworkId") Long homeworkId);
+
+    @Select("select distinct sid from homework_submit where homework_id = #{homeworkId}")
+    List<String> getSubmittedSids(@Param("homeworkId") Long homeworkId);
 
     @Select("select * from homework_submit where sid = #{sid}")
     List<HomeworkSubmit> getSubmissionBySid(String sid);
@@ -30,7 +33,7 @@ public interface HomeworkSubmitMapper {
     @Select("select * from homework_submit where homework_id = #{homeworkId} and sid = #{sid}")
     HomeworkSubmit getSubmissionByHomeworkIdAndSid(Long homeworkId, String sid);
 
-    @Select("select hs.id, hs.homework_id as homeworkId, hs.score, hs.status, hs.submit_time as submitTime, s.name as studentName " +
+    @Select("select hs.id, hs.sid, hs.homework_id as homeworkId, hs.score, hs.status, hs.submit_time as submitTime, s.name as studentName " +
             "from homework_submit hs left join student s on hs.sid = s.sid " +
             "where hs.homework_id = #{homeworkId} " +
             "order by hs.submit_time desc LIMIT #{limit} OFFSET #{offset}")

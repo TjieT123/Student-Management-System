@@ -105,6 +105,17 @@ public class TeacherController {
     }
 
     /**
+     * 获取指定作业未提交的学生名单
+     */
+    @GetMapping("/homework/{homeworkId}/unsubmitted")
+    public ResponseEntity<Result> getUnsubmittedStudents(@PathVariable Long homeworkId, HttpServletRequest httpRequest) {
+        String token = getTokenFromRequest(httpRequest);
+        if (token == null) return Result.error(401, "Unauthorized");
+        List<Map<String, Object>> unsubmitted = homeworkService.getUnsubmittedStudents(homeworkId);
+        return Result.success(unsubmitted, "ok");
+    }
+
+    /**
      * 获取单个提交详情（含 content、comment 等完整信息）
      */
     @GetMapping("/homework/submission/{id}")

@@ -63,10 +63,6 @@ public class AuthService {
      * User registration（自动创建关联的 student 或 teacher 记录）
      */
     public User register(RegisterRequest req) {
-        if (userMapper.getUserByUsername(req.getUsername()) != null) {
-            return null;
-        }
-
         User user = new User();
         user.setUsername(req.getUsername());
         user.setPassword(passwordEncoder.encode(req.getPassword()));
@@ -146,6 +142,10 @@ public class AuthService {
      */
     public User getUserByUsername(String username) {
         return userMapper.getUserByUsername(username);
+    }
+
+    public User getUserBySchId(String schId) {
+        return userMapper.getUserBySchId(schId);
     }
 
     /**

@@ -158,6 +158,23 @@ public class HomeworkService {
         return result;
     }
 
+    public List<Map<String, Object>> getUnsubmittedStudents(Long homeworkId) {
+        Homework homework = homeworkMapper.getHomeworkById(homeworkId);
+        if (homework == null) return List.of();
+        Long courseId = homework.getCourseId();
+        List<Map<String, Object>> enrolled = courseMapper.getEnrolledStudents(courseId);
+        if (enrolled == null || enrolled.isEmpty()) return List.of();
+        // 直接用 DISTINCT sid 查询，不依赖对象映射
+        List<String> submittedSids = submitMapper.getSubmittedSids(homeworkId);
+        Set<String> sidSet = new HashSet<>(submittedSids != null ? submittedSids : List.of());
+        List<Map<String, Object>> unsubmitted = new ArrayList<>();
+        for (Map<String, Object> stu : enrolled) {
+            String sid = (String) stu.get("sid");
+            if (sid != null && !sidSet.contains(sid)) unsubmitted.add(stu);
+        }
+        return unsubmitted;
+    }
+
     public Map<String, Object> getHomeworkStatistics(Long homeworkId, Long userId) {
         Homework homework = homeworkMapper.getHomeworkById(homeworkId);
         if (homework == null) {
@@ -178,8 +195,10 @@ public class HomeworkService {
         }
 
         int totalStudents = courseMapper.countStudentsByCourseId(homework.getCourseId());
+        List<String> submittedSids = submitMapper.getSubmittedSids(homeworkId);
+        int submittedCount = submittedSids != null ? submittedSids.size() : 0;
+        // 获取分数用于分布统计
         List<Integer> scores = submitMapper.getScoresByHomeworkId(homeworkId);
-        int submittedCount = scores.size();
         int unsubmittedCount = totalStudents - submittedCount;
 
         int fail = 0, pass = 0, good = 0, excellent = 0;
