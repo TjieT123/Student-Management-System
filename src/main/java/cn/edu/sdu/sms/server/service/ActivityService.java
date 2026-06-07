@@ -36,7 +36,9 @@ public class ActivityService {
             Object d = a.get("date");
             if (d != null) {
                 try {
-                    LocalDate ld = d instanceof LocalDate ? (LocalDate) d : LocalDate.parse(d.toString());
+                    String ds = d.toString();
+                    if (ds.length() >= 10) ds = ds.substring(0, 10);
+                    LocalDate ld = LocalDate.parse(ds);
                     if (ld.isBefore(LocalDate.now())) continue;
                 } catch (Exception ignored) { continue; }
             }
@@ -66,7 +68,7 @@ public class ActivityService {
     public void register(Long activityId, String sid) {
         Activity a = mapper.getById(activityId);
         if (a == null) throw new RuntimeException("活动不存在");
-        if (a.getDate() != null && a.getDate().isBefore(java.time.LocalDateTime.now())) throw new RuntimeException("活动已过期，无法报名");
+        if (a.getDate() != null && a.getDate().isBefore(LocalDateTime.now())) throw new RuntimeException("活动已过期，无法报名");
         if (mapper.isRegistered(activityId, sid) > 0) throw new RuntimeException("已报名，不能重复报名");
         if (a.getMaxParticipants() != null && a.getMaxParticipants() > 0) {
             int count = mapper.countRegistrations(activityId);
