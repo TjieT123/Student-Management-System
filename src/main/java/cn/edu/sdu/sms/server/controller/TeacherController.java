@@ -89,7 +89,8 @@ public class TeacherController {
             return Result.error(401, "Unauthorized");
         }
 
-        Map<String, Object> result = homeworkService.getHomeworkPaginated(page, pageSize);
+        String teacherId = jwtTokenProvider.getUserIdFromToken(token);
+        Map<String, Object> result = homeworkService.getHomeworkByTeacherPaginated(teacherId, page, pageSize);
         return Result.success(result, "Homework list retrieved");
     }
 

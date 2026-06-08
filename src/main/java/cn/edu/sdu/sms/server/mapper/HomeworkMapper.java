@@ -32,6 +32,15 @@ public interface HomeworkMapper {
     @Select("select count(*) from homework")
     int countAllHomework();
 
+    @Select("select h.id, h.course_id as courseId, h.title, h.deadline, t.name as teacherName " +
+            "from homework h left join teacher t on h.teacher_id = t.sch_id " +
+            "where h.teacher_id = #{teacherId} " +
+            "order by h.create_time desc LIMIT #{limit} OFFSET #{offset}")
+    List<Map<String, Object>> getHomeworkByTeacherPaginated(@Param("teacherId") String teacherId, @Param("offset") int offset, @Param("limit") int limit);
+
+    @Select("select count(*) from homework where teacher_id = #{teacherId}")
+    int countHomeworkByTeacherId(@Param("teacherId") String teacherId);
+
     @Select("select h.id, h.title, h.deadline, c.course_name as courseName, u.name as teacherName, hs.score as score, " +
             "case when hs.id is null then 'UNSUBMIT' " +
             "when hs.status = 'GRADED' then 'GRADED' " +

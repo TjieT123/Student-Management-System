@@ -106,6 +106,22 @@ public class HomeworkService {
     }
 
     /**
+     * 分页获取指定教师的作业列表
+     */
+    public Map<String, Object> getHomeworkByTeacherPaginated(String teacherId, int page, int pageSize) {
+        int offset = (page - 1) * pageSize;
+        int total = homeworkMapper.countHomeworkByTeacherId(teacherId);
+        List<Map<String, Object>> list = homeworkMapper.getHomeworkByTeacherPaginated(teacherId, offset, pageSize);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("page", page);
+        result.put("pageSize", pageSize);
+        result.put("list", list);
+        return result;
+    }
+
+    /**
      * 分页获取作业列表（不含content、teacherId、createTime，含teacherName）
      */
     public Map<String, Object> getHomeworkPaginated(int page, int pageSize) {
